@@ -294,6 +294,67 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    /* Floating Practice Windows (Reference Diagram & Checklist) */
+    .practice-window {
+      user-select: none;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.35);
+      animation: fadeInWindow 0.2s ease-out;
+    }
+    @keyframes fadeInWindow {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .win-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .win-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .win-btn.close { background: #c62828; border-color: #b71c1c; font-weight: bold; }
+    .win-btn.close:hover { background: #d32f2f; }
+    
+    .cl-group-title {
+      font-weight: bold;
+      color: #1a237e;
+      padding: 6px 0 3px 0;
+      margin-top: 6px;
+      border-bottom: 1.5px solid #c5cae9;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .cl-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 6px;
+      margin: 2px 0;
+      border-radius: 3px;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .cl-item:hover { background: #f1f8e9; }
+    .cl-item.done {
+      color: #2e7d32;
+      background: #e8f5e9;
+      font-weight: 500;
+    }
+    .cl-item.pending {
+      color: #37474f;
+    }
+    .cl-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: bold;
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -306,8 +367,10 @@
     <div class="menu-item" onclick="deleteSelected()" title="Delete Selected (Delete key)">Delete</div>
     <div class="menu-item" onclick="setVisualMode(visualMode === '2D' ? 'SCHEMATIC' : '2D')">Draw</div>
     <div class="menu-item" onclick="setToolMode('POINTER')">Pointer</div>
-    <div class="menu-item" onclick="setWireType('PHASE')">Wire</div>
-    <div class="menu-item" onclick="alert('CADe_SIMU v4.2 Pro [English Edition]\nEnhanced with Full 2D Integrated Contactors, Undo/Redo (Ctrl+Z/Ctrl+Y), Component Deletion, and Star-Delta Engine.')">Help</div>
+    <div class="menu-item" onclick="setWireType('PHASE_L1')">Wire</div>
+    <div class="menu-item" onclick="loadStarDeltaPractice()" title="Practice Star-Delta Wiring with 0 Wires & Diagram" style="color:#01579b; font-weight:bold;">🎯 Practice Lab</div>
+    <div class="menu-item" onclick="toggleReferenceDiagram()" title="Toggle Circuit Diagram" style="color:#4a148c; font-weight:bold;">📖 Diagram</div>
+    <div class="menu-item" onclick="alert('CADe_SIMU v4.2 Pro [English Edition]\nEnhanced with Full 2D Integrated Contactors, Undo/Redo, Star-Delta Wiring Practice Workbench, and Circuit Diagram Reference.')">Help</div>
   </div>
 
   <!-- Standard Toolbar (Row 1) -->
@@ -345,18 +408,23 @@
       <button class="tb-btn stop" id="btn-stop" title="Stop Simulation">⏹ Stop</button>
     </div>
 
-    <!-- Quick Starter Demos -->
+    <!-- Quick Starter Demos & Practice Lab -->
     <div class="tb-group">
-      <button class="tb-btn" id="btn-demo-sd" style="background:#fff3e0; font-weight:bold; color:#e65100; border:1px solid #ffb74d;" onclick="loadStarDeltaStarter()" title="Load Full 6-Terminal Star-Delta Starter Demo">⭐ Star-Delta Demo</button>
+      <button class="tb-btn" id="btn-practice-sd" style="background:#e1f5fe; font-weight:bold; color:#01579b; border:1.5px solid #0288d1; box-shadow: 0 1px 3px rgba(1,87,155,0.3);" onclick="loadStarDeltaPractice()" title="Practice Star-Delta Wiring: All components placed with 0 wires! Connect using circuit diagram.">🎯 Practice Star-Delta</button>
+      <button class="tb-btn" id="btn-toggle-diagram" style="background:#f3e5f5; font-weight:bold; color:#4a148c; border:1px solid #ce93d8;" onclick="toggleReferenceDiagram()" title="Open/Close Circuit Diagram Reference Window">📖 Diagram</button>
+      <button class="tb-btn" id="btn-toggle-checklist" style="background:#ede7f6; font-weight:bold; color:#311b92; border:1px solid #b39ddb;" onclick="togglePracticeChecklist()" title="Open/Close Wiring Checklist & Hints">📋 Checklist (<span id="wire-checklist-count">0/26</span>)</button>
+      <button class="tb-btn" id="btn-demo-sd" style="background:#fff3e0; font-weight:bold; color:#e65100; border:1px solid #ffb74d;" onclick="loadStarDeltaStarter()" title="Load Full 6-Terminal Star-Delta Starter Demo">⭐ Solution Demo</button>
       <button class="tb-btn" id="btn-demo-dol" style="background:#e8f5e9; font-weight:bold; color:#2e7d32; border:1px solid #a5d6a7;" onclick="loadDOLStarter()" title="Load Direct-on-Line Starter Demo">⭐ DOL Demo</button>
     </div>
 
-    <!-- Tools -->
+    <!-- Tools & Colored Wires Matching Diagram -->
     <div class="tb-group">
       <button class="tb-btn" id="btn-pointer" title="Pointer Tool (Drag & Reposition)" onclick="setToolMode('POINTER')">↖ Pointer</button>
-      <button class="tb-btn active" id="btn-wire-phase" title="Phase Wire (L)" onclick="setWireType('PHASE')" style="color:#8b0000; font-weight:bold;">━ Phase (L)</button>
+      <button class="tb-btn active" id="btn-wire-l1" title="Phase L1 (Red)" onclick="setWireType('PHASE_L1')" style="color:#d32f2f; font-weight:bold;">━ L1 (Red)</button>
+      <button class="tb-btn" id="btn-wire-l2" title="Phase L2 (Yellow)" onclick="setWireType('PHASE_L2')" style="color:#e65100; font-weight:bold;">━ L2 (Yellow)</button>
+      <button class="tb-btn" id="btn-wire-l3" title="Phase L3 (Blue)" onclick="setWireType('PHASE_L3')" style="color:#1565c0; font-weight:bold;">━ L3 (Blue)</button>
       <button class="tb-btn" id="btn-wire-neutral" title="Neutral Wire (N)" onclick="setWireType('NEUTRAL')" style="color:#0000d0; font-weight:bold;">━ Neutral (N)</button>
-      <button class="tb-btn" id="btn-wire-pe" title="Protection Wire (PE)" onclick="setWireType('PE')" style="color:#008000; font-weight:bold;">━ PE (Ground)</button>
+      <button class="tb-btn" id="btn-wire-pe" title="Protection Wire (PE)" onclick="setWireType('PE')" style="color:#008000; font-weight:bold;">━ PE</button>
     </div>
 
     <!-- Display Mode Toggle -->
@@ -423,6 +491,57 @@
     <div class="status-panel" style="width:120px;" id="sb-coords">X: 0, Y: 0</div>
     <div class="status-panel" style="width:160px;" id="sb-mode">Mode: 2D Panel View</div>
     <div class="status-panel" style="width:170px;" id="sb-sim">Simulation: STOP</div>
+  </div>
+
+  <!-- Floating Circuit Diagram Reference Panel -->
+  <div id="diagram-reference-panel" class="practice-window" style="display:none; position:fixed; top:75px; right:20px; width:520px; max-width:92vw; max-height:86vh; background:#ffffff; border:2px solid #01579b; border-radius:8px; box-shadow:0 10px 35px rgba(0,0,0,0.35); z-index:9999; flex-direction:column; overflow:hidden;">
+    <div class="practice-win-header" style="background:#01579b; color:#fff; padding:8px 12px; font-weight:bold; font-size:12px; display:flex; justify-content:space-between; align-items:center; cursor:move; user-select:none;" id="diagram-drag-handle">
+      <span>📖 STAR-DELTA CIRCUIT DIAGRAM (REFERENCE)</span>
+      <div style="display:flex; gap:6px;">
+        <button onclick="zoomDiagram(1.25)" class="win-btn" title="Zoom In">🔍+</button>
+        <button onclick="zoomDiagram(0.8)" class="win-btn" title="Zoom Out">🔍-</button>
+        <button onclick="resetDiagramZoom()" class="win-btn" title="Reset Zoom 1:1">1:1</button>
+        <button onclick="toggleReferenceDiagram(false)" class="win-btn close" title="Close">✕</button>
+      </div>
+    </div>
+    <div style="background:#e1f5fe; padding:6px 12px; font-size:11px; color:#01579b; border-bottom:1px solid #b3e5fc; line-height:1.4;">
+      💡 <b>Schematic Reference:</b> Connect components on the canvas using this schematic.<br>
+      • <b>KM3</b>: Main Contactor &nbsp;|&nbsp; <b>KM2</b>: Delta &nbsp;|&nbsp; <b>KM1</b>: Star &nbsp;|&nbsp; <b>K1T</b>: Timer &nbsp;|&nbsp; <b>-M</b>: 6T Motor
+    </div>
+    <div style="overflow:auto; flex:1; padding:8px; text-align:center; background:#f5f7fa; max-height:64vh;" id="diagram-img-scroll">
+      <img id="ref-diagram-img" src="star_delta_reference.png" alt="Star Delta Circuit Diagram" style="width:100%; min-width:400px; border:1px solid #cfd8dc; border-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.1); transform-origin: top center; transition:transform 0.15s ease;" />
+    </div>
+    <div style="background:#eceff1; padding:6px 12px; display:flex; justify-content:space-between; align-items:center; font-size:11px; border-top:1px solid #cfd8dc;">
+      <span style="color:#546e7a;">Source: InstrumentationTools.com</span>
+      <div style="display:flex; gap:8px;">
+        <button onclick="giveNextWireHint()" style="background:#f57f17; color:#fff; border:none; border-radius:3px; padding:3px 8px; font-size:11px; cursor:pointer; font-weight:bold;">💡 Next Hint</button>
+        <button onclick="loadStarDeltaStarter()" style="background:#2e7d32; color:#fff; border:none; border-radius:3px; padding:3px 8px; font-size:11px; cursor:pointer; font-weight:bold;" title="Load complete wiring solution">👁️ Peek Solution</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating / Docked Wiring Progress Checklist Panel -->
+  <div id="practice-checklist-panel" class="practice-window" style="display:none; position:fixed; bottom:30px; right:20px; width:480px; max-width:92vw; max-height:55vh; background:#ffffff; border:2px solid #2e7d32; border-radius:8px; box-shadow:0 10px 35px rgba(0,0,0,0.3); z-index:9998; flex-direction:column; overflow:hidden;">
+    <div class="practice-win-header" style="background:#2e7d32; color:#fff; padding:8px 12px; font-weight:bold; font-size:12px; display:flex; justify-content:space-between; align-items:center; cursor:move; user-select:none;" id="checklist-drag-handle">
+      <span>📋 STAR-DELTA WIRING CHECKLIST (<span id="cl-progress-percent">0%</span>)</span>
+      <div style="display:flex; gap:6px;">
+        <button onclick="giveNextWireHint()" class="win-btn" style="background:#f57f17;" title="Highlight next connection">💡 Hint</button>
+        <button onclick="clearOnlyWires()" class="win-btn" style="background:#c62828;" title="Clear all wires and restart">🔄 Restart</button>
+        <button onclick="togglePracticeChecklist(false)" class="win-btn close" title="Close">✕</button>
+      </div>
+    </div>
+    <div style="background:#e8f5e9; padding:8px 12px; font-size:11px; color:#1b5e20; border-bottom:1px solid #c8e6c9;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:11px;">
+        <b>Wiring Completed:</b>
+        <b id="cl-count-text" style="color:#2e7d32;">0 / 26 Connections (0%)</b>
+      </div>
+      <div style="background:#c8e6c9; border-radius:4px; height:8px; overflow:hidden;">
+        <div id="cl-progress-bar" style="background:#2e7d32; height:100%; width:0%; transition:width 0.3s ease;"></div>
+      </div>
+    </div>
+    <div style="overflow-y:auto; flex:1; padding:8px 12px; font-size:11px; max-height:38vh; background:#fafafa;" id="checklist-items">
+      <!-- Generated dynamically -->
+    </div>
   </div>
 
   <script>
@@ -974,15 +1093,30 @@
       document.querySelectorAll('.tb-group .tb-btn').forEach(b => {
         if (b.id === 'btn-pointer' || b.id.startsWith('btn-wire-')) b.classList.remove('active');
       });
-      if (type === 'PHASE') {
+      if (type === 'PHASE_L1') {
+        activeWireColor = '#d32f2f'; // Diagram Red
+        const btn = document.getElementById('btn-wire-l1');
+        if (btn) btn.classList.add('active');
+      } else if (type === 'PHASE_L2') {
+        activeWireColor = '#f57f17'; // Diagram Yellow
+        const btn = document.getElementById('btn-wire-l2');
+        if (btn) btn.classList.add('active');
+      } else if (type === 'PHASE_L3') {
+        activeWireColor = '#1565c0'; // Diagram Blue
+        const btn = document.getElementById('btn-wire-l3');
+        if (btn) btn.classList.add('active');
+      } else if (type === 'PHASE') {
         activeWireColor = '#8b0000';
-        document.getElementById('btn-wire-phase').classList.add('active');
+        const btn = document.getElementById('btn-wire-l1') || document.getElementById('btn-wire-phase');
+        if (btn) btn.classList.add('active');
       } else if (type === 'NEUTRAL') {
         activeWireColor = '#0000d0';
-        document.getElementById('btn-wire-neutral').classList.add('active');
+        const btn = document.getElementById('btn-wire-neutral');
+        if (btn) btn.classList.add('active');
       } else if (type === 'PE') {
         activeWireColor = '#008000';
-        document.getElementById('btn-wire-pe').classList.add('active');
+        const btn = document.getElementById('btn-wire-pe');
+        if (btn) btn.classList.add('active');
       }
       document.getElementById('sb-status').textContent = `Wire tool: Click a terminal pin to connect (${type})`;
     }
@@ -1582,25 +1716,25 @@
 
       // 3. Evaluate Real Contactor Coils Directly on the Contactors!
       const contactors = components.filter(c => c.type === 'CONTACTOR_3P');
-      const km1 = contactors.find(c => c.tag.includes('KM1') || c.tag.includes('Main'));
-      const km2 = contactors.find(c => c.tag.includes('KM2') || c.tag.includes('Star'));
-      const km3 = contactors.find(c => c.tag.includes('KM3') || c.tag.includes('Delta'));
+      const kmMain = contactors.find(c => c.tag.includes('Main')) || contactors.find(c => c.tag === '-KM3' || c.tag === '-KM1');
+      const kmStar = contactors.find(c => c.tag.includes('Star')) || contactors.find(c => c.tag === '-KM1' || c.tag === '-KM2');
+      const kmDelta = contactors.find(c => c.tag.includes('Delta')) || contactors.find(c => c.tag === '-KM2' || c.tag === '-KM3');
       const timer = components.find(c => c.type === 'TIMER_STAR_DELTA');
       const motor = components.find(c => c.type === 'MOTOR_3P' || c.type === 'MOTOR_6T');
       const lampRun = components.find(c => c.type === 'PILO_VER');
       const lampStop = components.find(c => c.type === 'PILO_ROJ');
       const lampStar = components.find(c => c.type === 'PILO_AMA');
 
-      // Main Contactor -KM1 Coil Evaluation (Terminal A1 = index 4, Terminal A2 = index 9)
-      if (km1) {
-        const prevEnergized = km1.state.energized;
-        const a1Hot = km1.terminals[4].voltage === 'HOT_PHASE';
-        const a2Neutral = km1.terminals[9].voltage === 'NEUTRAL';
-        km1.state.energized = a1Hot && a2Neutral;
-        km1.state.closed = km1.state.energized;
+      // Main Contactor Coil Evaluation (Terminal A1 = index 4, Terminal A2 = index 9)
+      if (kmMain) {
+        const prevEnergized = kmMain.state.energized;
+        const a1Hot = kmMain.terminals[4].voltage === 'HOT_PHASE';
+        const a2Neutral = kmMain.terminals[9].voltage === 'NEUTRAL';
+        kmMain.state.energized = a1Hot && a2Neutral;
+        kmMain.state.closed = kmMain.state.energized;
 
-        if (!prevEnergized && km1.state.energized) playSound('CONTACTOR_IN');
-        if (prevEnergized && !km1.state.energized) playSound('CONTACTOR_OUT');
+        if (!prevEnergized && kmMain.state.energized) playSound('CONTACTOR_IN');
+        if (prevEnergized && !kmMain.state.energized) playSound('CONTACTOR_OUT');
       }
 
       // Pilot Lamps
@@ -1608,22 +1742,22 @@
       if (lampStop) lampStop.state.energized = (lampStop.terminals[0].voltage === 'HOT_PHASE');
       if (lampStar) lampStar.state.energized = (lampStar.terminals[0].voltage === 'HOT_PHASE');
 
-      // Star-Delta Timing Stage Evaluation (Directly Controls KM2 and KM3 Contactors!)
-      if (timer && km1) {
-        if (km1.state.energized) {
+      // Star-Delta Timing Stage Evaluation (Directly Controls Star and Delta Contactors!)
+      if (timer && kmMain) {
+        if (kmMain.state.energized) {
           timer.state.energized = true;
           timer.state.elapsed = (timer.state.elapsed || 0) + 0.04;
           if (timer.state.elapsed < 4.0) {
             timer.state.phase = 'STAR';
-            if (km2) { km2.state.energized = true; km2.state.closed = true; } // Star Contactor ON
-            if (km3) { km3.state.energized = false; km3.state.closed = false; } // Delta Contactor OFF
+            if (kmStar) { kmStar.state.energized = true; kmStar.state.closed = true; } // Star Contactor ON
+            if (kmDelta) { kmDelta.state.energized = false; kmDelta.state.closed = false; } // Delta Contactor OFF
             if (lampStar) lampStar.state.energized = true;
             if (lampRun) lampRun.state.energized = false;
           } else {
             if (timer.state.phase === 'STAR') playSound('CONTACTOR_IN');
             timer.state.phase = 'DELTA';
-            if (km2) { km2.state.energized = false; km2.state.closed = false; } // Star Contactor Drops Out
-            if (km3) { km3.state.energized = true; km3.state.closed = true; } // Delta Contactor Pulls In!
+            if (kmStar) { kmStar.state.energized = false; kmStar.state.closed = false; } // Star Contactor Drops Out
+            if (kmDelta) { kmDelta.state.energized = true; kmDelta.state.closed = true; } // Delta Contactor Pulls In!
             if (lampStar) lampStar.state.energized = false;
             if (lampRun) lampRun.state.energized = true;
           }
@@ -1631,8 +1765,8 @@
           timer.state.energized = false;
           timer.state.elapsed = 0;
           timer.state.phase = 'IDLE';
-          if (km2) { km2.state.energized = false; km2.state.closed = false; }
-          if (km3) { km3.state.energized = false; km3.state.closed = false; }
+          if (kmStar) { kmStar.state.energized = false; kmStar.state.closed = false; }
+          if (kmDelta) { kmDelta.state.energized = false; kmDelta.state.closed = false; }
           if (lampStar) lampStar.state.energized = false;
           if (lampRun) lampRun.state.energized = false;
         }
@@ -1642,8 +1776,8 @@
       if (motor) {
         const u1Hot = motor.terminals[0].voltage === 'HOT_PHASE';
         const hasReturn = (motor.type === 'MOTOR_6T')
-          ? (km1 && km1.state.closed && ((km2 && km2.state.closed) || (km3 && km3.state.closed)))
-          : (km1 ? km1.state.closed : false);
+          ? (kmMain && kmMain.state.closed && ((kmStar && kmStar.state.closed) || (kmDelta && kmDelta.state.closed)))
+          : (kmMain ? kmMain.state.closed : false);
         const isRunning = u1Hot && hasReturn;
         motor.state.running = isRunning;
         if (isRunning) {
@@ -1682,30 +1816,32 @@
     function updateEducationalExplainerBanner() {
       const qf = components.find(c => c.type === 'DISYUNTOR_3P');
       const contactors = components.filter(c => c.type === 'CONTACTOR_3P');
-      const km1 = contactors.find(c => c.tag.includes('KM1') || c.tag.includes('Main'));
+      const kmMain = contactors.find(c => c.tag.includes('Main')) || contactors.find(c => c.tag === '-KM3' || c.tag === '-KM1');
+      const kmStar = contactors.find(c => c.tag.includes('Star')) || contactors.find(c => c.tag === '-KM1' || c.tag === '-KM2');
+      const kmDelta = contactors.find(c => c.tag.includes('Delta')) || contactors.find(c => c.tag === '-KM2' || c.tag === '-KM3');
       const timer = components.find(c => c.type === 'TIMER_STAR_DELTA');
       const motor = components.find(c => c.type === 'MOTOR_3P' || c.type === 'MOTOR_6T');
       const badge = document.getElementById('flow-badge');
       const desc = document.getElementById('flow-desc');
 
       if (!isSimulating) {
-        badge.className = 'flow-badge cold';
-        badge.textContent = 'STAGE 0: STOPPED';
-        desc.textContent = 'Circuit simulation is stopped. Click ▶ Simulation to power up.';
+        badge.className = 'flow-badge ready';
+        badge.textContent = 'PRACTICE MODE: WIRING LAB';
+        desc.textContent = 'Connect components using the Reference Diagram on the right. When ready, click ▶ Simulation!';
         return;
       }
 
       if (!qf || !qf.state.closed) {
         badge.className = 'flow-badge ready';
         badge.textContent = 'STAGE 1: 400V AT BREAKER INPUT';
-        desc.textContent = '⚡ 400V Supply is active and reaches MCB (-QF1) inputs 1, 3, 5. Power STOPS here because breaker contacts are open. Click -QF1 to close!';
+        desc.textContent = `⚡ 400V Supply is active and reaches ${qf ? qf.tag : 'Breaker'} inputs 1, 3, 5. Power STOPS here because breaker contacts are open. Click breaker to close!`;
         return;
       }
 
-      if (!km1 || !km1.state.energized) {
+      if (!kmMain || !kmMain.state.energized) {
         badge.className = 'flow-badge ready';
         badge.textContent = 'STAGE 2: POWER AT CONTACTOR & BUTTON';
-        desc.textContent = '⚡ MCB is CLOSED! 400V flows to Contactor -KM1 inputs and Start Button (-SB2). Contactor is open, so motor is safe (0V). Click Green START (-SB2) to energize!';
+        desc.textContent = `⚡ Breaker is CLOSED! 400V flows to Main Contactor (${kmMain ? kmMain.tag : 'KM'}) inputs and Start Button. Click Green START to energize!`;
         return;
       }
 
@@ -1713,21 +1849,21 @@
         const rem = Math.max(0, 4.0 - timer.state.elapsed).toFixed(1);
         badge.className = 'flow-badge star';
         badge.textContent = `STAGE 3A: STAR MODE (${rem}s)`;
-        desc.textContent = `★ STAR ACCELERATION: -KM1 & -KM2 are CLOSED. Star bridge active on -KM2. Motor running on 230V reduced starting current (1200 RPM). Timer switching in ${rem}s...`;
+        desc.textContent = `★ STAR ACCELERATION: ${kmMain.tag} & ${kmStar ? kmStar.tag : 'Star'} are CLOSED. Motor running on 230V reduced starting current (1200 RPM). Timer switching in ${rem}s...`;
         return;
       }
 
       if (timer && timer.state.phase === 'DELTA') {
         badge.className = 'flow-badge delta';
         badge.textContent = 'STAGE 3B: FULL DELTA RUNNING (Δ)';
-        desc.textContent = '⚡ DELTA RUNNING: Timer expired! -KM2 dropped out and -KM3 (Delta) pulled in. Full 400V line voltage across motor windings (1440 RPM, 3.8A).';
+        desc.textContent = `⚡ DELTA RUNNING: Timer expired! Star dropped out and ${kmDelta ? kmDelta.tag : 'Delta'} pulled in. Full 400V line voltage across motor windings (1440 RPM).`;
         return;
       }
 
       if (motor && motor.state.running) {
         badge.className = 'flow-badge running';
-        badge.textContent = 'STAGE 3: DOL MOTOR RUNNING (1440 RPM)';
-        desc.textContent = '⚡ LATCH ACTIVE: Contactor -KM1 is locked ON. 400V flows into Motor windings U1, V1, W1. Fan spinning at 1440 RPM. Press Red STOP (-SB1) to break latch.';
+        badge.textContent = 'STAGE 3: MOTOR RUNNING (1440 RPM)';
+        desc.textContent = `⚡ LATCH ACTIVE: Contactor ${kmMain ? kmMain.tag : 'KM'} is locked ON. 400V flows into Motor windings. Press Red STOP to break latch.`;
         return;
       }
     }
@@ -2066,6 +2202,9 @@
 
       // 4. WIRE INSPECTION OVERLAYS (Rendered on top of everything so it's 100% visible!)
       renderWireInspectionOverlays();
+
+      // 5. Active Wiring Hint Beacon
+      renderWiringHintBeacon();
     }
 
     // PHOTOREALISTIC INDUSTRIAL 2D PANEL RENDERER
@@ -2789,9 +2928,414 @@
       reader.readAsText(file);
     });
 
+    // ==========================================
+    // STAR-DELTA CONNECTION PRACTICE WORKBENCH
+    // ==========================================
+    let activeHint = null;
+    let currentDiagramZoom = 1.0;
+
+    // Star-Delta Master Checklist Definition (29 Connections)
+    const starDeltaChecklistDef = [
+      { group: '⚡ Phase 1: Mains & Main Contactor (-KM3)', items: [
+        { id: 'feed_L1_qf', fromRole: 'feed', fromPin: 'L1', toRole: 'qf', toPin: '1', label: 'Mains L1 ➔ -F1 Breaker in [1]' },
+        { id: 'feed_L2_qf', fromRole: 'feed', fromPin: 'L2', toRole: 'qf', toPin: '3', label: 'Mains L2 ➔ -F1 Breaker in [3]' },
+        { id: 'feed_L3_qf', fromRole: 'feed', fromPin: 'L3', toRole: 'qf', toPin: '5', label: 'Mains L3 ➔ -F1 Breaker in [5]' },
+        { id: 'qf_kmMain_1', fromRole: 'qf', fromPin: '2', toRole: 'kmMain', toPin: '1', label: '-F1 Breaker out [2] ➔ -KM3 (Main) in [1]' },
+        { id: 'qf_kmMain_3', fromRole: 'qf', fromPin: '4', toRole: 'kmMain', toPin: '3', label: '-F1 Breaker out [4] ➔ -KM3 (Main) in [3]' },
+        { id: 'qf_kmMain_5', fromRole: 'qf', fromPin: '6', toRole: 'kmMain', toPin: '5', label: '-F1 Breaker out [6] ➔ -KM3 (Main) in [5]' },
+        { id: 'kmMain_mot_U1', fromRole: 'kmMain', fromPin: '2', toRole: 'motor', toPin: 'U1', label: '-KM3 (Main) out [2] ➔ Motor [U1]' },
+        { id: 'kmMain_mot_V1', fromRole: 'kmMain', fromPin: '4', toRole: 'motor', toPin: 'V1', label: '-KM3 (Main) out [4] ➔ Motor [V1]' },
+        { id: 'kmMain_mot_W1', fromRole: 'kmMain', fromPin: '6', toRole: 'motor', toPin: 'W1', label: '-KM3 (Main) out [6] ➔ Motor [W1]' },
+      ]},
+      { group: '🔺 Phase 2: Delta (-KM2) & Star (-KM1) Connections', items: [
+        { id: 'qf_kmDelta_1', fromRole: 'qf', fromPin: '2', toRole: 'kmDelta', toPin: '1', altFromRole: 'feed', altFromPin: 'L1', label: 'Phase L1 Tap ➔ -KM2 (Delta) in [1]' },
+        { id: 'qf_kmDelta_3', fromRole: 'qf', fromPin: '4', toRole: 'kmDelta', toPin: '3', altFromRole: 'feed', altFromPin: 'L2', label: 'Phase L2 Tap ➔ -KM2 (Delta) in [3]' },
+        { id: 'qf_kmDelta_5', fromRole: 'qf', fromPin: '6', toRole: 'kmDelta', toPin: '5', altFromRole: 'feed', altFromPin: 'L3', label: 'Phase L3 Tap ➔ -KM2 (Delta) in [5]' },
+        { id: 'kmDelta_mot_W2', fromRole: 'kmDelta', fromPin: '2', toRole: 'motor', toPin: 'W2', label: '-KM2 (Delta) out [2] ➔ Motor [W2]' },
+        { id: 'kmDelta_mot_U2', fromRole: 'kmDelta', fromPin: '4', toRole: 'motor', toPin: 'U2', label: '-KM2 (Delta) out [4] ➔ Motor [U2]' },
+        { id: 'kmDelta_mot_V2', fromRole: 'kmDelta', fromPin: '6', toRole: 'motor', toPin: 'V2', label: '-KM2 (Delta) out [6] ➔ Motor [V2]' },
+        { id: 'kmStar_mot_W2', fromRole: 'kmStar', fromPin: '2', toRole: 'motor', toPin: 'W2', altToRole: 'kmDelta', altToPin: '2', label: '-KM1 (Star) out [2] ➔ Motor [W2]' },
+        { id: 'kmStar_mot_U2', fromRole: 'kmStar', fromPin: '4', toRole: 'motor', toPin: 'U2', altToRole: 'kmDelta', altToPin: '4', label: '-KM1 (Star) out [4] ➔ Motor [U2]' },
+        { id: 'kmStar_mot_V2', fromRole: 'kmStar', fromPin: '6', toRole: 'motor', toPin: 'V2', altToRole: 'kmDelta', altToPin: '6', label: '-KM1 (Star) out [6] ➔ Motor [V2]' },
+        { id: 'kmStar_bridge_1', fromRole: 'kmStar', fromPin: '1', toRole: 'kmStar', toPin: '3', label: '★ Star Bridge: Short -KM1 pins [1 ➔ 3]' },
+        { id: 'kmStar_bridge_2', fromRole: 'kmStar', fromPin: '3', toRole: 'kmStar', toPin: '5', label: '★ Star Bridge: Short -KM1 pins [3 ➔ 5]' },
+      ]},
+      { group: '🎛️ Phase 3: Control Buttons & Contactor Latch', items: [
+        { id: 'ctrl_phase_stop', fromRole: 'qf', fromPin: '2', toRole: 'sbStop', toPin: '11', altFromRole: 'feed', altFromPin: 'L1', label: 'Phase Tap (L1) ➔ Stop Button [11]' },
+        { id: 'stop_start', fromRole: 'sbStop', fromPin: '12', toRole: 'sbStart', toPin: '13', label: 'Stop Button [12] ➔ Start Button [13]' },
+        { id: 'stop_kmMain_13', fromRole: 'sbStop', fromPin: '12', toRole: 'kmMain', toPin: '13', label: 'Stop [12] ➔ -KM3 Aux Latch NO [13]' },
+        { id: 'start_kmMain_A1', fromRole: 'sbStart', fromPin: '14', toRole: 'kmMain', toPin: 'A1', label: 'Start Button [14] ➔ -KM3 Coil [A1]' },
+        { id: 'kmMain_14_A1', fromRole: 'kmMain', fromPin: '14', toRole: 'kmMain', toPin: 'A1', label: '-KM3 Aux Latch NO [14] ➔ Coil [A1]' },
+      ]},
+      { group: '⏱️ Phase 4: Timer (K1T), Coils & Neutral Bus', items: [
+        { id: 'kmMain_A1_timer', fromRole: 'kmMain', fromPin: 'A1', toRole: 'timer', toPin: 'A1', label: '-KM3 Coil [A1] ➔ K1T Timer Coil [A1]' },
+        { id: 'timer_18_kmStar_A1', fromRole: 'timer', fromPin: '18(Y)', toRole: 'kmStar', toPin: 'A1', label: 'Timer Star Output [18(Y)] ➔ -KM1 (Star) Coil [A1]' },
+        { id: 'timer_28_kmDelta_A1', fromRole: 'timer', fromPin: '28(Δ)', toRole: 'kmDelta', toPin: 'A1', label: 'Timer Delta Output [28(Δ)] ➔ -KM2 (Delta) Coil [A1]' },
+        { id: 'neutral_kmMain_A2', fromRole: 'feed', fromPin: 'N', toRole: 'kmMain', toPin: 'A2', label: 'Neutral Bus: Feed [N] ➔ -KM3 Coil [A2]' },
+        { id: 'neutral_bus_kmDelta', fromRole: 'kmMain', fromPin: 'A2', toRole: 'kmDelta', toPin: 'A2', label: 'Neutral Bus: -KM3 [A2] ➔ -KM2 (Delta) [A2]' },
+        { id: 'neutral_bus_kmStar', fromRole: 'kmDelta', fromPin: 'A2', toRole: 'kmStar', toPin: 'A2', label: 'Neutral Bus: -KM2 [A2] ➔ -KM1 (Star) [A2]' },
+        { id: 'neutral_bus_timer', fromRole: 'kmStar', fromPin: 'A2', toRole: 'timer', toPin: 'A2', label: 'Neutral Bus: -KM1 [A2] ➔ K1T Timer [A2]' },
+      ]}
+    ];
+
+    function getComponentByRole(role) {
+      const contactors = components.filter(c => c.type === 'CONTACTOR_3P');
+      if (role === 'feed') return components.find(c => c.type === 'FEED_3P');
+      if (role === 'qf') return components.find(c => c.type === 'DISYUNTOR_3P');
+      if (role === 'kmMain') return contactors.find(c => c.tag.includes('Main')) || contactors.find(c => c.tag === '-KM3' || c.tag === '-KM1');
+      if (role === 'kmDelta') return contactors.find(c => c.tag.includes('Delta')) || contactors.find(c => c.tag === '-KM2' || c.tag === '-KM3');
+      if (role === 'kmStar') return contactors.find(c => c.tag.includes('Star')) || contactors.find(c => c.tag === '-KM1' || c.tag === '-KM2');
+      if (role === 'motor') return components.find(c => c.type === 'MOTOR_6T');
+      if (role === 'sbStop') return components.find(c => c.type === 'PUL_STOP');
+      if (role === 'sbStart') return components.find(c => c.type === 'PUL_START');
+      if (role === 'timer') return components.find(c => c.type === 'TIMER_STAR_DELTA');
+      if (role === 'lampStar') return components.find(c => c.type === 'PILO_AMA');
+      if (role === 'lampRun') return components.find(c => c.type === 'PILO_VER');
+      return null;
+    }
+
+    function getTerminalId(compRole, pinName) {
+      const comp = getComponentByRole(compRole);
+      if (!comp) return null;
+      const term = comp.terminals.find(t => t.name === pinName);
+      return term ? term.id : null;
+    }
+
+    function arePinsConnected(t1, t2) {
+      if (!t1 || !t2) return false;
+      if (t1 === t2) return true;
+      const direct = wires.some(w => (w.fromId === t1 && w.toId === t2) || (w.fromId === t2 && w.toId === t1));
+      if (direct) return true;
+      const adj = new Map();
+      for (const w of wires) {
+        if (!adj.has(w.fromId)) adj.set(w.fromId, []);
+        if (!adj.has(w.toId)) adj.set(w.toId, []);
+        adj.get(w.fromId).push(w.toId);
+        adj.get(w.toId).push(w.fromId);
+      }
+      const visited = new Set([t1]);
+      const queue = [t1];
+      while (queue.length > 0) {
+        const cur = queue.shift();
+        if (cur === t2) return true;
+        for (const next of (adj.get(cur) || [])) {
+          if (!visited.has(next)) {
+            visited.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      return false;
+    }
+
+    function findTerminalPosById(termId) {
+      for (const c of components) {
+        for (const t of c.terminals) {
+          if (t.id === termId) {
+            return { x: c.x + t.rx, y: c.y + t.ry, comp: c, term: t };
+          }
+        }
+      }
+      return null;
+    }
+
+    function renderWiringHintBeacon() {
+      if (!activeHint) return;
+      const p1 = findTerminalPosById(activeHint.fromId);
+      const p2 = findTerminalPosById(activeHint.toId);
+      if (!p1 || !p2) return;
+
+      const pulse = ((animTick * 2) % 40) / 40;
+      const r = 5 + pulse * 18;
+      const alpha = Math.max(0, 1 - pulse);
+
+      ctx.save();
+      // Draw ping ring at p1
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 214, 0, ${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd600';
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Draw ping ring at p2
+      ctx.beginPath();
+      ctx.arc(p2.x, p2.y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 214, 0, ${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(p2.x, p2.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd600';
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Dashed guide beam between p1 and p2
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = 'rgba(255, 214, 0, 0.75)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function updatePracticeChecklist() {
+      const container = document.getElementById('checklist-items');
+      if (!container) return;
+
+      let total = 0;
+      let doneCount = 0;
+      let html = '';
+
+      for (const group of starDeltaChecklistDef) {
+        let groupDone = 0;
+        let groupHtml = `<div class="cl-group-title"><span>${group.group}</span>`;
+        let itemsHtml = '';
+
+        for (const item of group.items) {
+          total++;
+          const t1 = getTerminalId(item.fromRole, item.fromPin);
+          const t2 = getTerminalId(item.toRole, item.toPin);
+          let connected = arePinsConnected(t1, t2);
+
+          if (!connected && item.altFromRole && item.altFromPin) {
+            const alt1 = getTerminalId(item.altFromRole, item.altFromPin);
+            connected = arePinsConnected(alt1, t2);
+          }
+          if (!connected && item.altToRole && item.altToPin) {
+            const alt2 = getTerminalId(item.altToRole, item.altToPin);
+            connected = arePinsConnected(t1, alt2);
+          }
+
+          item.done = connected;
+          if (connected) {
+            doneCount++;
+            groupDone++;
+          }
+
+          itemsHtml += `
+            <div class="cl-item ${connected ? 'done' : 'pending'}" onclick="setHintForItem('${item.id}')" title="Click to highlight these terminal pins">
+              <span class="cl-icon">${connected ? '✅' : '⭕'}</span>
+              <span style="${connected ? 'text-decoration:line-through; opacity:0.8;' : ''}">${item.label}</span>
+            </div>
+          `;
+        }
+
+        groupHtml += `<span style="font-size:10px; font-weight:normal;">${groupDone}/${group.items.length}</span></div>`;
+        html += groupHtml + itemsHtml;
+      }
+
+      container.innerHTML = html;
+      const percent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+      const countEl = document.getElementById('wire-checklist-count');
+      if (countEl) countEl.textContent = `${doneCount}/${total}`;
+
+      const textEl = document.getElementById('cl-count-text');
+      if (textEl) textEl.textContent = `${doneCount} / ${total} Connections (${percent}%)`;
+
+      const pctEl = document.getElementById('cl-progress-percent');
+      if (pctEl) pctEl.textContent = `${percent}%`;
+
+      const barEl = document.getElementById('cl-progress-bar');
+      if (barEl) barEl.style.width = `${percent}%`;
+
+      if (doneCount === total && total > 0) {
+        document.getElementById('sb-status').textContent = '🎉 EXCELLENT! 100% WIRING COMPLETE! Click ▶ Simulation to run!';
+      }
+      return { doneCount, total, percent };
+    }
+
+    function setHintForItem(itemId) {
+      for (const group of starDeltaChecklistDef) {
+        const found = group.items.find(i => i.id === itemId);
+        if (found) {
+          const t1 = getTerminalId(found.fromRole, found.fromPin);
+          const t2 = getTerminalId(found.toRole, found.toPin);
+          if (t1 && t2) {
+            activeHint = { fromId: t1, toId: t2, desc: found.label };
+            document.getElementById('sb-status').textContent = '💡 Hint: ' + found.label;
+            render();
+          }
+          break;
+        }
+      }
+    }
+
+    function giveNextWireHint() {
+      for (const group of starDeltaChecklistDef) {
+        for (const item of group.items) {
+          if (!item.done) {
+            const t1 = getTerminalId(item.fromRole, item.fromPin);
+            const t2 = getTerminalId(item.toRole, item.toPin);
+            if (t1 && t2) {
+              activeHint = { fromId: t1, toId: t2, desc: item.label };
+              document.getElementById('sb-status').textContent = '💡 Hint: ' + item.label;
+              playSound('CLICK');
+              render();
+              return;
+            }
+          }
+        }
+      }
+      document.getElementById('sb-status').textContent = '🎉 All wires are already connected! Press ▶ Simulation to test!';
+    }
+
+    function clearOnlyWires() {
+      if (wires.length > 0) saveState();
+      wires = [];
+      selectedTerminal = null;
+      selectedWire = null;
+      activeHint = null;
+      updatePracticeChecklist();
+      document.getElementById('sb-status').textContent = 'All wires cleared. Practice mode ready!';
+      render();
+    }
+
+    function toggleReferenceDiagram(forceState) {
+      const panel = document.getElementById('diagram-reference-panel');
+      if (!panel) return;
+      const isVisible = panel.style.display === 'flex';
+      const show = (forceState !== undefined) ? forceState : !isVisible;
+      panel.style.display = show ? 'flex' : 'none';
+      const btn = document.getElementById('btn-toggle-diagram');
+      if (btn) btn.classList.toggle('active', show);
+    }
+
+    function zoomDiagram(factor) {
+      currentDiagramZoom = Math.max(0.6, Math.min(3.0, currentDiagramZoom * factor));
+      const img = document.getElementById('ref-diagram-img');
+      if (img) img.style.transform = `scale(${currentDiagramZoom})`;
+    }
+
+    function resetDiagramZoom() {
+      currentDiagramZoom = 1.0;
+      const img = document.getElementById('ref-diagram-img');
+      if (img) img.style.transform = 'scale(1.0)';
+    }
+
+    function togglePracticeChecklist(forceState) {
+      const panel = document.getElementById('practice-checklist-panel');
+      if (!panel) return;
+      const isVisible = panel.style.display === 'flex';
+      const show = (forceState !== undefined) ? forceState : !isVisible;
+      panel.style.display = show ? 'flex' : 'none';
+      const btn = document.getElementById('btn-toggle-checklist');
+      if (btn) btn.classList.toggle('active', show);
+      if (show) updatePracticeChecklist();
+    }
+
+    function makeDraggable(panel, handle) {
+      let isDown = false;
+      let startX, startY, origX, origY;
+      handle.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = panel.getBoundingClientRect();
+        origX = rect.left;
+        origY = rect.top;
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+      function onMove(e) {
+        if (!isDown) return;
+        panel.style.left = (origX + (e.clientX - startX)) + 'px';
+        panel.style.top = (origY + (e.clientY - startY)) + 'px';
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+      }
+      function onUp() {
+        isDown = false;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+    }
+
+    function loadStarDeltaPractice() {
+      if (components.length > 0 || wires.length > 0) {
+        saveState();
+      }
+      isSimulating = false;
+      if (simInterval) { clearInterval(simInterval); simInterval = null; }
+      resetCircuitStates();
+
+      components = [];
+      wires = [];
+      selectedComp = null;
+      selectedWire = null;
+      selectedTerminal = null;
+      activeHint = null;
+      updateDeleteButtonUI();
+      document.getElementById('tb-circuit-title').textContent = 'Title: Star-Delta (Y-Δ) Connection Practice Lab';
+
+      // 1. Power Supply & Overload / Breaker (-F1)
+      const feed = addComponent('FEED_3P', 'Mains P.S. (3~ 400V)', 80, 50);
+      const qf = addComponent('DISYUNTOR_3P', '-F1 (Overload Breaker)', 80, 150);
+
+      // 2. The 3 Contactors (Matching Diagram: KM3 Main, KM2 Delta, KM1 Star!)
+      const kmMain = addComponent('CONTACTOR_3P', '-KM3 (Main)', 80, 380);
+      const kmDelta = addComponent('CONTACTOR_3P', '-KM2 (Delta)', 290, 380);
+      const kmStar = addComponent('CONTACTOR_3P', '-KM1 (Star)', 500, 380);
+
+      // 3. 6-Terminal Induction Motor (-M)
+      const motor = addComponent('MOTOR_6T', '-M (U1 V1 W1 W2 U2 V2)', 150, 650);
+
+      // 4. Control Components (Right-hand columns)
+      const sbStop = addComponent('PUL_STOP', 'Stop (NC -SB1)', 720, 160);
+      const sbStart = addComponent('PUL_START', 'Start (NO -SB2)', 720, 340);
+      const timer = addComponent('TIMER_STAR_DELTA', 'K1T (Timer)', 900, 160);
+      const lampStar = addComponent('PILO_AMA', '-HL3 (Star)', 1080, 160);
+      const lampRun = addComponent('PILO_VER', '-HL1 (Delta Run)', 1080, 340);
+
+      // Set default wire tool to Phase L1 (Red)
+      setWireType('PHASE_L1');
+
+      // Open Reference Diagram and Checklist
+      toggleReferenceDiagram(true);
+      togglePracticeChecklist(true);
+      updatePracticeChecklist();
+
+      document.getElementById('sb-status').textContent = '🎯 Star-Delta Practice Mode: Connect components using the Reference Diagram on the right!';
+      document.getElementById('flow-badge').className = 'flow-badge ready';
+      document.getElementById('flow-badge').textContent = 'PRACTICE MODE: WIRING LAB';
+      document.getElementById('flow-desc').textContent = 'All components are placed with 0 wires! Select wire colors (L1 Red, L2 Yellow, L3 Blue, Neutral) and click terminal pins to connect according to the diagram.';
+
+      render();
+    }
+
+    // Initialize Draggable Floating Panels
+    if (typeof window !== 'undefined') {
+      window.addEventListener('DOMContentLoaded', () => {
+        const diagPanel = document.getElementById('diagram-reference-panel');
+        const diagHandle = document.getElementById('diagram-drag-handle');
+        if (diagPanel && diagHandle) makeDraggable(diagPanel, diagHandle);
+
+        const clPanel = document.getElementById('practice-checklist-panel');
+        const clHandle = document.getElementById('checklist-drag-handle');
+        if (clPanel && clHandle) makeDraggable(clPanel, clHandle);
+      });
+    }
+
     // Default Initialization: Load Star-Delta Starter Ready to Run!
     showCategory('POWER');
-    loadStarDeltaStarter();
+    if (typeof window !== 'undefined' && window.location && ((window.location.search && new URLSearchParams(window.location.search).get('mode') === 'practice') || (window.location.pathname && window.location.pathname.includes('practice')))) {
+      loadStarDeltaPractice();
+    } else {
+      loadStarDeltaStarter();
+    }
   </script>
 </body>
 </html>

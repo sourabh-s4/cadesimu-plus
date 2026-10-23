@@ -65,7 +65,7 @@ const mockCanvas = {
 global.window = {
   addEventListener: () => {},
   dispatchEvent: () => {},
-  location: { reload: () => {} }
+  location: { pathname: '/', search: '', reload: () => {} }
 };
 
 global.document = {

@@ -1,0 +1,3336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CADe_SIMU - Star-Delta Connection Practice Lab</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+      font-size: 11px;
+      background: #ece9d8;
+      color: #000;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Windows Classic Menu Bar */
+    .menu-bar {
+      background: #ece9d8;
+      border-bottom: 1px solid #d4d0c8;
+      padding: 1px 4px;
+      display: flex;
+      gap: 2px;
+      font-size: 11px;
+    }
+    .menu-item {
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+    .menu-item:hover {
+      background: #316ac5;
+      color: #fff;
+    }
+
+    /* Toolbars (Row 1) */
+    .toolbar-row {
+      background: #ece9d8;
+      border-bottom: 1px solid #aca899;
+      padding: 2px 4px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-wrap: wrap;
+    }
+    .tb-group {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      border-right: 1px solid #aca899;
+      padding-right: 4px;
+      margin-right: 2px;
+    }
+    .tb-btn {
+      height: 24px;
+      padding: 1px 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ece9d8;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-size: 11px;
+      gap: 3px;
+      border-radius: 2px;
+    }
+    .tb-btn:hover {
+      border: 1px solid #fff;
+      border-right-color: #716f64;
+      border-bottom-color: #716f64;
+    }
+    .tb-btn:active, .tb-btn.active {
+      border: 1px solid #716f64;
+      border-right-color: #fff;
+      border-bottom-color: #fff;
+      background: #dedcd1;
+    }
+    .tb-btn.play { color: #008000; font-weight: bold; }
+    .tb-btn.stop { color: #cc0000; font-weight: bold; }
+    .tb-btn.delete { color: #b71c1c; font-weight: bold; }
+    .tb-btn.sound { color: #0d47a1; font-weight: bold; }
+
+    /* Category Ribbon (Row 2) */
+    .category-ribbon {
+      background: #ece9d8;
+      border-bottom: 2px groove #fff;
+      padding: 2px 6px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      overflow-x: auto;
+    }
+    .cat-btn {
+      padding: 3px 8px;
+      background: #ece9d8;
+      border: 1px solid #999;
+      border-radius: 2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .cat-btn:hover { background: #f5f4ea; }
+    .cat-btn.active {
+      background: #fff;
+      border-bottom-color: #fff;
+      font-weight: bold;
+    }
+
+    /* Sub-bar showing individual symbols */
+    .sub-toolbar {
+      background: #e4e2d5;
+      border-bottom: 1px solid #aca899;
+      padding: 3px 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 32px;
+      overflow-x: auto;
+    }
+    .symbol-btn {
+      padding: 2px 7px;
+      background: #ece9d8;
+      border: 1px solid #aca899;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .symbol-btn:hover { background: #fff; border-color: #316ac5; }
+    .symbol-btn.selected { background: #316ac5; color: #fff; border-color: #002d96; }
+
+    /* LIVE POWER FLOW EXPLAINER BANNER */
+    .flow-explainer-banner {
+      background: #1e2530;
+      color: #fff;
+      border-bottom: 2px solid #00e676;
+      padding: 4px 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .flow-badge {
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-family: Consolas, monospace;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .flow-badge.cold { background: #455a64; color: #cfd8dc; }
+    .flow-badge.ready { background: #ff8f00; color: #000; }
+    .flow-badge.running { background: #00c853; color: #000; }
+    .flow-badge.star { background: #ffd600; color: #000; }
+    .flow-badge.delta { background: #00e676; color: #000; }
+    .flow-desc {
+      flex: 1;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 11px;
+      color: #eceff1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Workspace / Drawing Sheet Area */
+    .workspace-wrapper {
+      flex: 1;
+      background: #757575;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: auto;
+      padding: 16px;
+      position: relative;
+    }
+
+    .drawing-sheet-container {
+      transition: transform 0.15s ease-out;
+      transform-origin: center top;
+    }
+
+    .drawing-sheet {
+      background: #ffffff;
+      width: 1400px;
+      height: 900px;
+      box-shadow: 3px 3px 14px rgba(0, 0, 0, 0.55);
+      position: relative;
+      background-image: radial-gradient(#bbb 0.75px, transparent 0.75px);
+      background-size: 10px 10px;
+      cursor: crosshair;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Sheet Border & Cajetín Title Block */
+    .sheet-border {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      bottom: 15px;
+      border: 1px solid #000;
+      pointer-events: none;
+    }
+    .sheet-title-block {
+      position: absolute;
+      right: 15px;
+      bottom: 15px;
+      width: 320px;
+      height: 72px;
+      border: 1px solid #000;
+      background: rgba(255, 255, 255, 0.96);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 18px 18px 18px 18px;
+      font-size: 9px;
+      pointer-events: none;
+    }
+    .tb-cell {
+      border: 1px solid #000;
+      padding: 1px 4px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Floating Multimeter Probe Tooltip */
+    #probe-tooltip {
+      position: absolute;
+      display: none;
+      background: rgba(10, 16, 29, 0.96);
+      color: #fff;
+      border: 1.5px solid #00e5ff;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 11px;
+      line-height: 1.45;
+      pointer-events: none;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.65), 0 0 10px rgba(0, 229, 255, 0.3);
+      z-index: 1000;
+      white-space: nowrap;
+    }
+
+    /* Visual Legend Dock at Bottom */
+    .visual-legend-dock {
+      position: absolute;
+      left: 20px;
+      bottom: 20px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #78909c;
+      border-radius: 3px;
+      padding: 4px 8px;
+      font-size: 9px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-color { width: 12px; height: 3px; border-radius: 1px; }
+
+    /* Status Bar */
+    .status-bar {
+      background: #ece9d8;
+      border-top: 1px solid #999;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      font-size: 11px;
+    }
+    .status-panel {
+      border: 1px inset #fff;
+      padding: 1px 8px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Floating Practice Windows (Reference Diagram & Checklist) */
+    .practice-window {
+      user-select: none;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.35);
+      animation: fadeInWindow 0.2s ease-out;
+    }
+    @keyframes fadeInWindow {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .win-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .win-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .win-btn.close { background: #c62828; border-color: #b71c1c; font-weight: bold; }
+    .win-btn.close:hover { background: #d32f2f; }
+    
+    .cl-group-title {
+      font-weight: bold;
+      color: #1a237e;
+      padding: 6px 0 3px 0;
+      margin-top: 6px;
+      border-bottom: 1.5px solid #c5cae9;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .cl-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 6px;
+      margin: 2px 0;
+      border-radius: 3px;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .cl-item:hover { background: #f1f8e9; }
+    .cl-item.done {
+      color: #2e7d32;
+      background: #e8f5e9;
+      font-weight: 500;
+    }
+    .cl-item.pending {
+      color: #37474f;
+    }
+    .cl-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: bold;
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Menu Bar -->
+  <div class="menu-bar">
+    <a href="index.html" class="menu-item" style="color:#01579b; font-weight:bold; text-decoration:none;">⬅ Full Simulator</a>
+    <div class="menu-item" onclick="loadStarDeltaPractice()" style="color:#01579b; font-weight:bold;">🎯 Restart Practice</div>
+    <div class="menu-item" onclick="undo()" title="Undo (Ctrl+Z)">Undo</div>
+    <div class="menu-item" onclick="redo()" title="Redo (Ctrl+Y)">Redo</div>
+    <div class="menu-item" onclick="deleteSelected()" title="Delete Selected (Delete key)">Delete</div>
+    <div class="menu-item" onclick="toggleReferenceDiagram()" style="color:#4a148c; font-weight:bold;">📖 Circuit Diagram</div>
+    <div class="menu-item" onclick="togglePracticeChecklist()" style="color:#2e7d32; font-weight:bold;">📋 Checklist</div>
+    <div class="menu-item" onclick="giveNextWireHint()" style="color:#e65100; font-weight:bold;">💡 Next Hint</div>
+    <div class="menu-item" onclick="setVisualMode(visualMode === '2D' ? 'SCHEMATIC' : '2D')">Draw</div>
+  </div>
+
+  <!-- Standard Toolbar (Row 1) -->
+  <div class="toolbar-row">
+    <!-- File Actions -->
+    <div class="tb-group">
+      <button class="tb-btn" title="New Diagram" onclick="clearSheet()">📄 New</button>
+      <button class="tb-btn" title="Open .cad file" onclick="document.getElementById('file-input').click()">📂 Open</button>
+      <button class="tb-btn" title="Save .cad file" onclick="exportCad()">💾 Save</button>
+      <button class="tb-btn" title="Print" onclick="window.print()">🖨️ Print</button>
+      <input type="file" id="file-input" accept=".cad,.txt" style="display:none;" />
+    </div>
+
+    <!-- Edit Actions -->
+    <div class="tb-group">
+      <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()" disabled style="opacity:0.5; cursor:not-allowed;">↩️ Undo</button>
+      <button class="tb-btn" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()" disabled style="opacity:0.5; cursor:not-allowed;">↪️ Redo</button>
+      <button class="tb-btn delete" id="btn-delete" title="Delete Selected Component/Wire (Delete key)" onclick="deleteSelected()">🗑️ Delete</button>
+      <button class="tb-btn" title="Reset Circuit States" onclick="resetCircuitStates()">🔄 Reset</button>
+      <button class="tb-btn sound" id="btn-sound" title="Toggle Sound" onclick="toggleSound()">🔊 Sound: ON</button>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div class="tb-group">
+      <button class="tb-btn" title="Zoom In" onclick="setZoom(1.2)">🔍+</button>
+      <button class="tb-btn" title="Zoom Out" onclick="setZoom(0.8)">🔍-</button>
+      <button class="tb-btn" title="Zoom 100%" onclick="setZoom(1.0)">1:1</button>
+      <span id="zoom-indicator" style="font-size: 10px; color: #555; padding-left: 3px;">100%</span>
+    </div>
+
+    <!-- Simulation Controls -->
+    <div class="tb-group">
+      <button class="tb-btn play" id="btn-run" title="Run Simulation">▶ Simulation</button>
+      <button class="tb-btn" id="btn-pause" title="Pause Simulation">⏸ Pause</button>
+      <button class="tb-btn stop" id="btn-stop" title="Stop Simulation">⏹ Stop</button>
+    </div>
+
+    <!-- Quick Starter Demos & Practice Lab -->
+    <div class="tb-group">
+      <button class="tb-btn" id="btn-practice-sd" style="background:#e1f5fe; font-weight:bold; color:#01579b; border:1.5px solid #0288d1; box-shadow: 0 1px 3px rgba(1,87,155,0.3);" onclick="loadStarDeltaPractice()" title="Practice Star-Delta Wiring: All components placed with 0 wires! Connect using circuit diagram.">🎯 Practice Star-Delta</button>
+      <button class="tb-btn" id="btn-toggle-diagram" style="background:#f3e5f5; font-weight:bold; color:#4a148c; border:1px solid #ce93d8;" onclick="toggleReferenceDiagram()" title="Open/Close Circuit Diagram Reference Window">📖 Diagram</button>
+      <button class="tb-btn" id="btn-toggle-checklist" style="background:#ede7f6; font-weight:bold; color:#311b92; border:1px solid #b39ddb;" onclick="togglePracticeChecklist()" title="Open/Close Wiring Checklist & Hints">📋 Checklist (<span id="wire-checklist-count">0/26</span>)</button>
+      <button class="tb-btn" id="btn-demo-sd" style="background:#fff3e0; font-weight:bold; color:#e65100; border:1px solid #ffb74d;" onclick="loadStarDeltaStarter()" title="Load Full 6-Terminal Star-Delta Starter Demo">⭐ Solution Demo</button>
+      <button class="tb-btn" id="btn-demo-dol" style="background:#e8f5e9; font-weight:bold; color:#2e7d32; border:1px solid #a5d6a7;" onclick="loadDOLStarter()" title="Load Direct-on-Line Starter Demo">⭐ DOL Demo</button>
+    </div>
+
+    <!-- Tools & Colored Wires Matching Diagram -->
+    <div class="tb-group">
+      <button class="tb-btn" id="btn-pointer" title="Pointer Tool (Drag & Reposition)" onclick="setToolMode('POINTER')">↖ Pointer</button>
+      <button class="tb-btn active" id="btn-wire-l1" title="Phase L1 (Red)" onclick="setWireType('PHASE_L1')" style="color:#d32f2f; font-weight:bold;">━ L1 (Red)</button>
+      <button class="tb-btn" id="btn-wire-l2" title="Phase L2 (Yellow)" onclick="setWireType('PHASE_L2')" style="color:#e65100; font-weight:bold;">━ L2 (Yellow)</button>
+      <button class="tb-btn" id="btn-wire-l3" title="Phase L3 (Blue)" onclick="setWireType('PHASE_L3')" style="color:#1565c0; font-weight:bold;">━ L3 (Blue)</button>
+      <button class="tb-btn" id="btn-wire-neutral" title="Neutral Wire (N)" onclick="setWireType('NEUTRAL')" style="color:#0000d0; font-weight:bold;">━ Neutral (N)</button>
+      <button class="tb-btn" id="btn-wire-pe" title="Protection Wire (PE)" onclick="setWireType('PE')" style="color:#008000; font-weight:bold;">━ PE</button>
+    </div>
+
+    <!-- Display Mode Toggle -->
+    <div class="tb-group">
+      <button class="tb-btn active" id="btn-mode-2d" onclick="setVisualMode('2D')">🖼️ 2D Panel View</button>
+      <button class="tb-btn" id="btn-mode-sym" onclick="setVisualMode('SCHEMATIC')">📐 IEC Schematic</button>
+    </div>
+  </div>
+
+  <!-- Component Category Ribbon (Row 2) -->
+  <div class="category-ribbon">
+    <button class="cat-btn active" onclick="showCategory('POWER', event)">⚡ Power Feeds</button>
+    <button class="cat-btn" onclick="showCategory('BREAKERS', event)">⏚ Automatic Switches</button>
+    <button class="cat-btn" onclick="showCategory('CONTACTORS', event)">🔀 2D Contactors</button>
+    <button class="cat-btn" onclick="showCategory('MOTORS', event)">⚙️ Motors</button>
+    <button class="cat-btn" onclick="showCategory('BUTTONS', event)">🔘 Pushbuttons & Controls</button>
+    <button class="cat-btn" onclick="showCategory('SIGNALS', event)">💡 Signaling & Lamps</button>
+    <button class="cat-btn" onclick="showCategory('PRESETS', event)" style="background:#fff2a8;">⭐ Ready Demos</button>
+  </div>
+
+  <!-- Sub-Toolbar -->
+  <div class="sub-toolbar" id="sub-toolbar"></div>
+
+  <!-- LIVE POWER FLOW EXPLAINER BANNER -->
+  <div class="flow-explainer-banner">
+    <div class="flow-badge cold" id="flow-badge">STAGE 0: COLD</div>
+    <div class="flow-desc" id="flow-desc">Circuit is completely de-energized. Click ▶ Simulation, then switch ON Motor Breaker (-QF1) to power the bus.</div>
+  </div>
+
+  <!-- Workspace & Drawing Sheet -->
+  <div class="workspace-wrapper" id="workspace-wrap">
+    <div class="drawing-sheet-container" id="sheet-container">
+      <div class="drawing-sheet" id="drawing-sheet">
+        <canvas id="schematicCanvas"></canvas>
+
+        <!-- Floating Multimeter Probe Tooltip -->
+        <div id="probe-tooltip"></div>
+
+        <!-- Visual Legend Dock -->
+        <div class="visual-legend-dock">
+          <div class="legend-item"><div class="legend-color" style="background:#ff9100; box-shadow:0 0 4px #ff9100;"></div><span><b>Live Hot Potential (400V/230V Waiting)</b></span></div>
+          <div class="legend-item"><div class="legend-color" style="background:#00e676; box-shadow:0 0 4px #00e676;"></div><span><b>Active Current Flowing (Loaded)</b></span></div>
+          <div class="legend-item"><div class="legend-color" style="background:#0000d0;"></div><span><b>Neutral Return (0V)</b></span></div>
+          <div class="legend-item"><div class="legend-color" style="background:#78909c;"></div><span><b>Cold / De-energized</b></span></div>
+        </div>
+
+        <!-- Sheet Border & Cajetín -->
+        <div class="sheet-border"></div>
+        <div class="sheet-title-block">
+          <div class="tb-cell" style="grid-column: span 2; font-weight:bold;">CADe_SIMU v4.2 Pro - Circuit Diagram</div>
+          <div class="tb-cell">Author: Sourabh Singh</div>
+          <div class="tb-cell">Date: 22/10/2026</div>
+          <div class="tb-cell" id="tb-solver-status">Status: SOLVER READY</div>
+          <div class="tb-cell" id="tb-circuit-title">Title: DOL Starter Circuit</div>
+          <div class="tb-cell" style="grid-column: span 2;">Filename: Diagram1.cad</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-panel" style="flex:1;" id="sb-status">Ready (Edit Mode)</div>
+    <div class="status-panel" style="width:120px;" id="sb-coords">X: 0, Y: 0</div>
+    <div class="status-panel" style="width:160px;" id="sb-mode">Mode: 2D Panel View</div>
+    <div class="status-panel" style="width:170px;" id="sb-sim">Simulation: STOP</div>
+  </div>
+
+  <!-- Floating Circuit Diagram Reference Panel -->
+  <div id="diagram-reference-panel" class="practice-window" style="display:none; position:fixed; top:75px; right:20px; width:520px; max-width:92vw; max-height:86vh; background:#ffffff; border:2px solid #01579b; border-radius:8px; box-shadow:0 10px 35px rgba(0,0,0,0.35); z-index:9999; flex-direction:column; overflow:hidden;">
+    <div class="practice-win-header" style="background:#01579b; color:#fff; padding:8px 12px; font-weight:bold; font-size:12px; display:flex; justify-content:space-between; align-items:center; cursor:move; user-select:none;" id="diagram-drag-handle">
+      <span>📖 STAR-DELTA CIRCUIT DIAGRAM (REFERENCE)</span>
+      <div style="display:flex; gap:6px;">
+        <button onclick="zoomDiagram(1.25)" class="win-btn" title="Zoom In">🔍+</button>
+        <button onclick="zoomDiagram(0.8)" class="win-btn" title="Zoom Out">🔍-</button>
+        <button onclick="resetDiagramZoom()" class="win-btn" title="Reset Zoom 1:1">1:1</button>
+        <button onclick="toggleReferenceDiagram(false)" class="win-btn close" title="Close">✕</button>
+      </div>
+    </div>
+    <div style="background:#e1f5fe; padding:6px 12px; font-size:11px; color:#01579b; border-bottom:1px solid #b3e5fc; line-height:1.4;">
+      💡 <b>Schematic Reference:</b> Connect components on the canvas using this schematic.<br>
+      • <b>KM3</b>: Main Contactor &nbsp;|&nbsp; <b>KM2</b>: Delta &nbsp;|&nbsp; <b>KM1</b>: Star &nbsp;|&nbsp; <b>K1T</b>: Timer &nbsp;|&nbsp; <b>-M</b>: 6T Motor
+    </div>
+    <div style="overflow:auto; flex:1; padding:8px; text-align:center; background:#f5f7fa; max-height:64vh;" id="diagram-img-scroll">
+      <img id="ref-diagram-img" src="star_delta_reference.png" alt="Star Delta Circuit Diagram" style="width:100%; min-width:400px; border:1px solid #cfd8dc; border-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.1); transform-origin: top center; transition:transform 0.15s ease;" />
+    </div>
+    <div style="background:#eceff1; padding:6px 12px; display:flex; justify-content:space-between; align-items:center; font-size:11px; border-top:1px solid #cfd8dc;">
+      <span style="color:#546e7a;">Source: InstrumentationTools.com</span>
+      <div style="display:flex; gap:8px;">
+        <button onclick="giveNextWireHint()" style="background:#f57f17; color:#fff; border:none; border-radius:3px; padding:3px 8px; font-size:11px; cursor:pointer; font-weight:bold;">💡 Next Hint</button>
+        <button onclick="loadStarDeltaStarter()" style="background:#2e7d32; color:#fff; border:none; border-radius:3px; padding:3px 8px; font-size:11px; cursor:pointer; font-weight:bold;" title="Load complete wiring solution">👁️ Peek Solution</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating / Docked Wiring Progress Checklist Panel -->
+  <div id="practice-checklist-panel" class="practice-window" style="display:none; position:fixed; bottom:30px; right:20px; width:480px; max-width:92vw; max-height:55vh; background:#ffffff; border:2px solid #2e7d32; border-radius:8px; box-shadow:0 10px 35px rgba(0,0,0,0.3); z-index:9998; flex-direction:column; overflow:hidden;">
+    <div class="practice-win-header" style="background:#2e7d32; color:#fff; padding:8px 12px; font-weight:bold; font-size:12px; display:flex; justify-content:space-between; align-items:center; cursor:move; user-select:none;" id="checklist-drag-handle">
+      <span>📋 STAR-DELTA WIRING CHECKLIST (<span id="cl-progress-percent">0%</span>)</span>
+      <div style="display:flex; gap:6px;">
+        <button onclick="giveNextWireHint()" class="win-btn" style="background:#f57f17;" title="Highlight next connection">💡 Hint</button>
+        <button onclick="clearOnlyWires()" class="win-btn" style="background:#c62828;" title="Clear all wires and restart">🔄 Restart</button>
+        <button onclick="togglePracticeChecklist(false)" class="win-btn close" title="Close">✕</button>
+      </div>
+    </div>
+    <div style="background:#e8f5e9; padding:8px 12px; font-size:11px; color:#1b5e20; border-bottom:1px solid #c8e6c9;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:11px;">
+        <b>Wiring Completed:</b>
+        <b id="cl-count-text" style="color:#2e7d32;">0 / 26 Connections (0%)</b>
+      </div>
+      <div style="background:#c8e6c9; border-radius:4px; height:8px; overflow:hidden;">
+        <div id="cl-progress-bar" style="background:#2e7d32; height:100%; width:0%; transition:width 0.3s ease;"></div>
+      </div>
+    </div>
+    <div style="overflow-y:auto; flex:1; padding:8px 12px; font-size:11px; max-height:38vh; background:#fafafa;" id="checklist-items">
+      <!-- Generated dynamically -->
+    </div>
+  </div>
+
+  <script>
+    // Canvas & Setup
+    const canvas = document.getElementById('schematicCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1400;
+    canvas.height = 900;
+
+    // Web Audio Synthesizer
+    let audioCtx = null;
+    let soundEnabled = true;
+    let motorOsc = null;
+    let motorGain = null;
+
+    function initAudio() {
+      if (typeof window === 'undefined') return;
+      const AudioClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioClass) return;
+      if (!audioCtx) audioCtx = new AudioClass();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('btn-sound').textContent = soundEnabled ? '🔊 Sound: ON' : '🔈 Sound: OFF';
+      if (!soundEnabled && motorGain && audioCtx) {
+        motorGain.gain.setValueAtTime(0, audioCtx.currentTime);
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const t = audioCtx.currentTime;
+        if (type === 'CLICK') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(1400, t);
+          osc.frequency.exponentialRampToValueAtTime(300, t + 0.025);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(t);
+          osc.stop(t + 0.03);
+        } else if (type === 'BREAKER') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(280, t);
+          osc.frequency.exponentialRampToValueAtTime(60, t + 0.06);
+          gain.gain.setValueAtTime(0.35, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(t);
+          osc.stop(t + 0.07);
+        } else if (type === 'CONTACTOR_IN') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(140, t);
+          osc.frequency.exponentialRampToValueAtTime(45, t + 0.07);
+          gain.gain.setValueAtTime(0.4, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(t);
+          osc.stop(t + 0.08);
+        } else if (type === 'CONTACTOR_OUT') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(420, t);
+          osc.frequency.exponentialRampToValueAtTime(120, t + 0.04);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(t);
+          osc.stop(t + 0.05);
+        }
+      } catch (err) {}
+    }
+
+    function updateMotorHum(isRunning, rpm) {
+      if (!soundEnabled) {
+        if (motorGain && audioCtx) motorGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        return;
+      }
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const t = audioCtx.currentTime;
+        if (!motorOsc) {
+          motorOsc = audioCtx.createOscillator();
+          motorGain = audioCtx.createGain();
+          motorOsc.type = 'sine';
+          motorOsc.frequency.setValueAtTime(50, t);
+          motorGain.gain.setValueAtTime(0, t);
+          motorOsc.connect(motorGain);
+          motorGain.connect(audioCtx.destination);
+          motorOsc.start(t);
+        }
+        if (isRunning && rpm > 0) {
+          const freq = 30 + (rpm / 1440) * 45;
+          motorOsc.frequency.setTargetAtTime(freq, t, 0.1);
+          motorGain.gain.setTargetAtTime(0.12, t, 0.1);
+        } else {
+          motorGain.gain.setTargetAtTime(0, t, 0.15);
+        }
+      } catch (err) {}
+    }
+
+    // State Variables
+    let components = [];
+    let wires = [];
+    let hoveredWire = null;
+    let simInterval = null;
+    let animTick = 0;
+
+    let visualMode = '2D';
+    let isSimulating = false;
+    let isPaused = false;
+    let toolMode = 'WIRE';
+    let activeWireColor = '#8b0000';
+    let activeWireType = 'PHASE';
+    let currentZoom = 1.0;
+
+    let selectedComponentType = null;
+    let selectedTerminal = null;
+    let selectedComp = null;
+    let selectedWire = null;
+    let mousePos = { x: 0, y: 0 };
+
+    let isDragging = false;
+    let draggedComp = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragStartSnapshot = null;
+
+    // Undo / Redo History Stacks
+    const undoStack = [];
+    const redoStack = [];
+    const MAX_HISTORY = 50;
+
+    function saveState() {
+      try {
+        const snapshot = JSON.stringify({
+          components: components.map(c => ({
+            id: c.id,
+            type: c.type,
+            tag: c.tag,
+            x: c.x,
+            y: c.y,
+            w: c.w,
+            h: c.h,
+            terminals: c.terminals.map(t => ({ ...t })),
+            state: { ...c.state }
+          })),
+          wires: wires.map(w => ({ ...w }))
+        });
+
+        if (undoStack.length > 0 && undoStack[undoStack.length - 1] === snapshot) {
+          return;
+        }
+
+        undoStack.push(snapshot);
+        if (undoStack.length > MAX_HISTORY) undoStack.shift();
+        redoStack.length = 0;
+        updateUndoRedoUI();
+      } catch (err) {
+        console.error('Error saving undo state:', err);
+      }
+    }
+
+    function undo() {
+      if (undoStack.length === 0) {
+        document.getElementById('sb-status').textContent = 'Nothing to undo.';
+        return;
+      }
+      try {
+        const currentSnapshot = JSON.stringify({
+          components: components.map(c => ({
+            id: c.id,
+            type: c.type,
+            tag: c.tag,
+            x: c.x,
+            y: c.y,
+            w: c.w,
+            h: c.h,
+            terminals: c.terminals.map(t => ({ ...t })),
+            state: { ...c.state }
+          })),
+          wires: wires.map(w => ({ ...w }))
+        });
+        redoStack.push(currentSnapshot);
+
+        const prev = JSON.parse(undoStack.pop());
+        components = prev.components;
+        wires = prev.wires;
+        selectedComp = null;
+        selectedWire = null;
+        selectedTerminal = null;
+
+        updateUndoRedoUI();
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = `Undo: Restored previous state (${undoStack.length} undos available).`;
+        stepSolver();
+        render();
+      } catch (err) {
+        console.error('Error executing undo:', err);
+      }
+    }
+
+    function redo() {
+      if (redoStack.length === 0) {
+        document.getElementById('sb-status').textContent = 'Nothing to redo.';
+        return;
+      }
+      try {
+        const currentSnapshot = JSON.stringify({
+          components: components.map(c => ({
+            id: c.id,
+            type: c.type,
+            tag: c.tag,
+            x: c.x,
+            y: c.y,
+            w: c.w,
+            h: c.h,
+            terminals: c.terminals.map(t => ({ ...t })),
+            state: { ...c.state }
+          })),
+          wires: wires.map(w => ({ ...w }))
+        });
+        undoStack.push(currentSnapshot);
+
+        const next = JSON.parse(redoStack.pop());
+        components = next.components;
+        wires = next.wires;
+        selectedComp = null;
+        selectedWire = null;
+        selectedTerminal = null;
+
+        updateUndoRedoUI();
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = `Redo: Restored next state (${redoStack.length} redos available).`;
+        stepSolver();
+        render();
+      } catch (err) {
+        console.error('Error executing redo:', err);
+      }
+    }
+
+    function updateUndoRedoUI() {
+      const uBtn = document.getElementById('btn-undo');
+      const rBtn = document.getElementById('btn-redo');
+      if (uBtn) {
+        uBtn.disabled = (undoStack.length === 0);
+        uBtn.style.opacity = undoStack.length === 0 ? '0.5' : '1.0';
+        uBtn.style.cursor = undoStack.length === 0 ? 'not-allowed' : 'pointer';
+        uBtn.title = undoStack.length === 0 ? 'Undo (Ctrl+Z)' : `Undo (${undoStack.length} actions left) (Ctrl+Z)`;
+      }
+      if (rBtn) {
+        rBtn.disabled = (redoStack.length === 0);
+        rBtn.style.opacity = redoStack.length === 0 ? '0.5' : '1.0';
+        rBtn.style.cursor = redoStack.length === 0 ? 'not-allowed' : 'pointer';
+        rBtn.title = redoStack.length === 0 ? 'Redo (Ctrl+Y)' : `Redo (${redoStack.length} actions left) (Ctrl+Y)`;
+      }
+    }
+
+    function updateDeleteButtonUI() {
+      const delBtn = document.getElementById('btn-delete');
+      if (delBtn) {
+        if (selectedComp) {
+          delBtn.style.background = '#ffcdd2';
+          delBtn.style.color = '#b71c1c';
+          delBtn.style.fontWeight = 'bold';
+          delBtn.title = `Delete Selected Component: ${selectedComp.tag} (Del)`;
+        } else if (selectedWire) {
+          delBtn.style.background = '#ffcdd2';
+          delBtn.style.color = '#b71c1c';
+          delBtn.style.fontWeight = 'bold';
+          delBtn.title = 'Delete Selected Wire (Del)';
+        } else {
+          delBtn.style.background = '';
+          delBtn.style.color = '#b71c1c';
+          delBtn.style.fontWeight = 'normal';
+          delBtn.title = 'Delete Selected Component/Wire (Delete key)';
+        }
+      }
+    }
+    function distToSegment(px, py, x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const l2 = dx * dx + dy * dy;
+      if (l2 === 0) return Math.hypot(px - x1, py - y1);
+      let t = ((px - x1) * dx + (py - y1) * dy) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+    }
+
+    function getWirePoints(w, p1, p2) {
+      const lane = (w.lane || 0) * 14;
+      const pts = [{ x: p1.x, y: p1.y }];
+      if (Math.abs(p1.x - p2.x) < 2) {
+        pts.push({ x: p1.x, y: p2.y });
+      } else if (p1.side === 'BOTTOM' && p2.side === 'BOTTOM') {
+        const ductY = Math.max(p1.y, p2.y) + 32 + lane;
+        pts.push({ x: p1.x, y: ductY }, { x: p2.x, y: ductY }, { x: p2.x, y: p2.y });
+      } else if (p1.side === 'TOP' && p2.side === 'TOP') {
+        const ductY = Math.min(p1.y, p2.y) - 40 - lane;
+        pts.push({ x: p1.x, y: ductY }, { x: p2.x, y: ductY }, { x: p2.x, y: p2.y });
+      } else if (p1.side === 'BOTTOM' && p2.side === 'TOP' && p1.y < p2.y) {
+        const midY = (p1.y + p2.y) / 2 + lane;
+        pts.push({ x: p1.x, y: midY }, { x: p2.x, y: midY }, { x: p2.x, y: p2.y });
+      } else {
+        const ductY = (p1.side === 'BOTTOM' ? p1.y + 30 : p1.y - 30) + lane;
+        pts.push({ x: p1.x, y: ductY }, { x: p2.x, y: ductY }, { x: p2.x, y: p2.y });
+      }
+      return pts;
+    }
+
+    function snap(v) { return Math.round(v / 10) * 10; }
+
+    // Component Catalog with True Integrated 2D Contactors
+    const componentCatalog = {
+      POWER: [
+        { type: 'FEED_3P', name: 'Power 3~ L1+L2+L3+N+PE', tag: '3~ 400V', w: 160, h: 36 },
+        { type: 'FEED_1P', name: 'Power 1~ L+N+PE', tag: '1~ 230V', w: 100, h: 36 }
+      ],
+      BREAKERS: [
+        { type: 'DISYUNTOR_3P', name: 'Motor Circuit Breaker (-QF)', tag: '-QF1', w: 90, h: 110 }
+      ],
+      CONTACTORS: [
+        // True Integrated 2D Contactor (Power Poles 1-6 + Aux NO 13-14 + Coil A1-A2 all on one component!)
+        { type: 'CONTACTOR_3P', name: '2D Contactor (Power + Aux + A1/A2)', tag: '-KM1', w: 120, h: 125 },
+        { type: 'TIMER_STAR_DELTA', name: 'Star-Delta Timer Relay (-KT)', tag: '-KT1', w: 70, h: 90 }
+      ],
+      MOTORS: [
+        { type: 'MOTOR_3P', name: 'Three-Phase Induction Motor (-M)', tag: '-M1', w: 160, h: 115 },
+        { type: 'MOTOR_6T', name: '6-Terminal Induction Motor (Y-Δ)', tag: '-M1 (6T)', w: 190, h: 130 }
+      ],
+      BUTTONS: [
+        { type: 'PUL_START', name: 'START Pushbutton NO (Green)', tag: '-SB2', w: 54, h: 72 },
+        { type: 'PUL_STOP', name: 'STOP Pushbutton NC (Red)', tag: '-SB1', w: 54, h: 72 }
+      ],
+      SIGNALS: [
+        { type: 'PILO_VER', name: 'Green Indicator Lamp (RUN)', tag: '-HL1', w: 54, h: 64 },
+        { type: 'PILO_ROJ', name: 'Red Indicator Lamp (STOP/TRIP)', tag: '-HL2', w: 54, h: 64 },
+        { type: 'PILO_AMA', name: 'Yellow Indicator Lamp (STAR)', tag: '-HL3', w: 54, h: 64 }
+      ],
+      PRESETS: [
+        { type: 'PRESET_DOL', name: '⭐ Direct-on-Line (DOL) Starter', action: 'dol' },
+        { type: 'PRESET_SD', name: '⭐ Star-Delta (Y-Δ) 6-Terminal Starter', action: 'stardelta' }
+      ]
+    };
+
+    function showCategory(catKey, ev) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      const target = ev ? ev.target : (typeof event !== 'undefined' ? event.target : null);
+      if (target) target.classList.add('active');
+
+      const bar = document.getElementById('sub-toolbar');
+      bar.innerHTML = '';
+
+      const items = componentCatalog[catKey] || [];
+      for (const item of items) {
+        const btn = document.createElement('button');
+        btn.className = 'symbol-btn';
+        btn.textContent = item.name;
+        btn.onclick = () => {
+          if (item.action === 'dol') loadDOLStarter();
+          else if (item.action === 'stardelta') loadStarDeltaStarter();
+          else {
+            selectedComponentType = item;
+            setToolMode('WIRE');
+            document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('sb-status').textContent = `Click sheet to place: ${item.name}`;
+          }
+        };
+        bar.appendChild(btn);
+      }
+    }
+
+    // Terminal Pin Definitions with Standoff Badges (Zero Overlap)
+    function getPins(type, compId, w, h) {
+      if (type === 'FEED_3P') {
+        return [
+          { id: `${compId}_L1`, name: 'L1', rx: 20,  ry: h, side: 'BOTTOM', isSource: true },
+          { id: `${compId}_L2`, name: 'L2', rx: 50,  ry: h, side: 'BOTTOM', isSource: true },
+          { id: `${compId}_L3`, name: 'L3', rx: 80,  ry: h, side: 'BOTTOM', isSource: true },
+          { id: `${compId}_N`,  name: 'N',  rx: 110, ry: h, side: 'BOTTOM', isSource: true },
+          { id: `${compId}_PE`, name: 'PE', rx: 140, ry: h, side: 'BOTTOM', isSource: true }
+        ];
+      }
+      if (type === 'DISYUNTOR_3P') {
+        return [
+          { id: `${compId}_in_1`,  name: '1', rx: 18, ry: 0, side: 'TOP' },
+          { id: `${compId}_in_2`,  name: '3', rx: 38, ry: 0, side: 'TOP' },
+          { id: `${compId}_in_3`,  name: '5', rx: 58, ry: 0, side: 'TOP' },
+          { id: `${compId}_out_1`, name: '2', rx: 18, ry: h, side: 'BOTTOM' },
+          { id: `${compId}_out_2`, name: '4', rx: 38, ry: h, side: 'BOTTOM' },
+          { id: `${compId}_out_3`, name: '6', rx: 58, ry: h, side: 'BOTTOM' }
+        ];
+      }
+      // TRUE INTEGRATED 2D CONTACTOR: Power Poles 1-6 + Aux NO 13-14 + Coil A1-A2 directly on contactor!
+      if (type === 'CONTACTOR_3P') {
+        return [
+          { id: `${compId}_in_1`,   name: '1',  rx: 18,  ry: 0, side: 'TOP' },
+          { id: `${compId}_in_2`,   name: '3',  rx: 38,  ry: 0, side: 'TOP' },
+          { id: `${compId}_in_3`,   name: '5',  rx: 58,  ry: 0, side: 'TOP' },
+          { id: `${compId}_aux_13`, name: '13', rx: 82,  ry: 0, side: 'TOP' },
+          { id: `${compId}_A1`,     name: 'A1', rx: 104, ry: 0, side: 'TOP' },
+          { id: `${compId}_out_1`,  name: '2',  rx: 18,  ry: h, side: 'BOTTOM' },
+          { id: `${compId}_out_2`,  name: '4',  rx: 38,  ry: h, side: 'BOTTOM' },
+          { id: `${compId}_out_3`,  name: '6',  rx: 58,  ry: h, side: 'BOTTOM' },
+          { id: `${compId}_aux_14`, name: '14', rx: 82,  ry: h, side: 'BOTTOM' },
+          { id: `${compId}_A2`,     name: 'A2', rx: 104, ry: h, side: 'BOTTOM' }
+        ];
+      }
+      if (type === 'MOTOR_3P') {
+        return [
+          { id: `${compId}_U1`, name: 'U1', rx: 35,  ry: 0, side: 'TOP' },
+          { id: `${compId}_V1`, name: 'V1', rx: 60,  ry: 0, side: 'TOP' },
+          { id: `${compId}_W1`, name: 'W1', rx: 85,  ry: 0, side: 'TOP' },
+          { id: `${compId}_PE`, name: 'PE', rx: 125, ry: 0, side: 'TOP' }
+        ];
+      }
+      // Authentic 6-Terminal Induction Motor for Star-Delta
+      if (type === 'MOTOR_6T') {
+        return [
+          { id: `${compId}_U1`, name: 'U1', rx: 25,  ry: 0, side: 'TOP' },
+          { id: `${compId}_V1`, name: 'V1', rx: 50,  ry: 0, side: 'TOP' },
+          { id: `${compId}_W1`, name: 'W1', rx: 75,  ry: 0, side: 'TOP' },
+          { id: `${compId}_W2`, name: 'W2', rx: 110, ry: 0, side: 'TOP' },
+          { id: `${compId}_U2`, name: 'U2', rx: 135, ry: 0, side: 'TOP' },
+          { id: `${compId}_V2`, name: 'V2', rx: 160, ry: 0, side: 'TOP' },
+          { id: `${compId}_PE`, name: 'PE', rx: w-10, ry: h/2, side: 'RIGHT' }
+        ];
+      }
+      if (type === 'TIMER_STAR_DELTA') {
+        return [
+          { id: `${compId}_A1`, name: 'A1',    rx: 16, ry: 0, side: 'TOP' },
+          { id: `${compId}_15`, name: '15',    rx: 48, ry: 0, side: 'TOP' },
+          { id: `${compId}_A2`, name: 'A2',    rx: 16, ry: h, side: 'BOTTOM' },
+          { id: `${compId}_18`, name: '18(Y)', rx: 38, ry: h, side: 'BOTTOM' },
+          { id: `${compId}_28`, name: '28(Δ)', rx: 58, ry: h, side: 'BOTTOM' }
+        ];
+      }
+      if (type === 'PUL_START') {
+        return [
+          { id: `${compId}_13`, name: '13', rx: w / 2, ry: 0, side: 'TOP' },
+          { id: `${compId}_14`, name: '14', rx: w / 2, ry: h, side: 'BOTTOM' }
+        ];
+      }
+      if (type === 'PUL_STOP') {
+        return [
+          { id: `${compId}_11`, name: '11', rx: w / 2, ry: 0, side: 'TOP' },
+          { id: `${compId}_12`, name: '12', rx: w / 2, ry: h, side: 'BOTTOM' }
+        ];
+      }
+      if (type.startsWith('PILO_')) {
+        return [
+          { id: `${compId}_1`, name: 'X1', rx: w / 2, ry: 0, side: 'TOP' },
+          { id: `${compId}_2`, name: 'X2', rx: w / 2, ry: h, side: 'BOTTOM' }
+        ];
+      }
+      return [
+        { id: `${compId}_1`, name: '1', rx: w / 2, ry: 0, side: 'TOP' },
+        { id: `${compId}_2`, name: '2', rx: w / 2, ry: h, side: 'BOTTOM' }
+      ];
+    }
+
+    function addComponent(type, tag, x, y) {
+      const id = 'c_' + Math.random().toString(36).substr(2, 6);
+      let w = 80, h = 60;
+      for (const cat of Object.values(componentCatalog)) {
+        const found = cat.find(c => c.type === type);
+        if (found) { w = found.w; h = found.h; break; }
+      }
+
+      const comp = {
+        id, type, tag, x: snap(x), y: snap(y), w, h,
+        terminals: getPins(type, id, w, h),
+        state: { closed: false, energized: false, running: false, pressed: false, rpm: 0, angle: 0, elapsed: 0, phase: 'IDLE', dir: 1 }
+      };
+      components.push(comp);
+      return comp;
+    }
+
+    function findTerminalAt(x, y) {
+      for (const c of components) {
+        for (const t of c.terminals) {
+          const tx = c.x + t.rx;
+          const ty = c.y + t.ry;
+          if (Math.hypot(x - tx, y - ty) <= 12) {
+            return { comp: c, term: t, x: tx, y: ty };
+          }
+        }
+      }
+      return null;
+    }
+
+    function findComponentAt(x, y) {
+      for (let i = components.length - 1; i >= 0; i--) {
+        const c = components[i];
+        if (x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h) {
+          return c;
+        }
+      }
+      return null;
+    }
+
+    function setZoom(factor) {
+      if (factor === 1.0) currentZoom = 1.0;
+      else currentZoom = Math.max(0.5, Math.min(2.0, currentZoom * factor));
+      const container = document.getElementById('sheet-container');
+      container.style.transform = `scale(${currentZoom})`;
+      document.getElementById('zoom-indicator').textContent = `${Math.round(currentZoom * 100)}%`;
+      document.getElementById('sb-status').textContent = `Zoom set to ${Math.round(currentZoom * 100)}%`;
+    }
+
+    function setToolMode(mode) {
+      toolMode = mode;
+      document.querySelectorAll('.tb-group .tb-btn').forEach(b => {
+        if (b.id === 'btn-pointer' || b.id.startsWith('btn-wire-')) b.classList.remove('active');
+      });
+      if (mode === 'POINTER') {
+        document.getElementById('btn-pointer').classList.add('active');
+        document.getElementById('sb-status').textContent = 'Pointer tool active: Click to select, drag to reposition components';
+      } else {
+        setWireType(activeWireType);
+      }
+      selectedTerminal = null;
+      render();
+    }
+
+    function setWireType(type) {
+      toolMode = 'WIRE';
+      activeWireType = type;
+      document.querySelectorAll('.tb-group .tb-btn').forEach(b => {
+        if (b.id === 'btn-pointer' || b.id.startsWith('btn-wire-')) b.classList.remove('active');
+      });
+      if (type === 'PHASE_L1') {
+        activeWireColor = '#d32f2f'; // Diagram Red
+        const btn = document.getElementById('btn-wire-l1');
+        if (btn) btn.classList.add('active');
+      } else if (type === 'PHASE_L2') {
+        activeWireColor = '#f57f17'; // Diagram Yellow
+        const btn = document.getElementById('btn-wire-l2');
+        if (btn) btn.classList.add('active');
+      } else if (type === 'PHASE_L3') {
+        activeWireColor = '#1565c0'; // Diagram Blue
+        const btn = document.getElementById('btn-wire-l3');
+        if (btn) btn.classList.add('active');
+      } else if (type === 'PHASE') {
+        activeWireColor = '#8b0000';
+        const btn = document.getElementById('btn-wire-l1') || document.getElementById('btn-wire-phase');
+        if (btn) btn.classList.add('active');
+      } else if (type === 'NEUTRAL') {
+        activeWireColor = '#0000d0';
+        const btn = document.getElementById('btn-wire-neutral');
+        if (btn) btn.classList.add('active');
+      } else if (type === 'PE') {
+        activeWireColor = '#008000';
+        const btn = document.getElementById('btn-wire-pe');
+        if (btn) btn.classList.add('active');
+      }
+      document.getElementById('sb-status').textContent = `Wire tool: Click a terminal pin to connect (${type})`;
+    }
+
+    function deleteSelected() {
+      if (isSimulating) {
+        document.getElementById('sb-status').textContent = 'Cannot delete components while simulation is RUNNING. Stop simulation (⏹ Stop) first.';
+        return;
+      }
+      if (selectedComp) {
+        saveState();
+        const compId = selectedComp.id;
+        const compTag = selectedComp.tag;
+        const termIds = new Set(selectedComp.terminals.map(t => t.id));
+        wires = wires.filter(w => !termIds.has(w.fromId) && !termIds.has(w.toId));
+        components = components.filter(c => c.id !== compId);
+        selectedComp = null;
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = `Deleted component: ${compTag} and connected wires. Press Ctrl+Z to Undo.`;
+        stepSolver();
+        render();
+      } else if (selectedWire) {
+        saveState();
+        wires = wires.filter(w => w !== selectedWire);
+        selectedWire = null;
+        hoveredWire = null;
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = 'Deleted selected wire. Press Ctrl+Z to Undo.';
+        stepSolver();
+        render();
+      } else {
+        document.getElementById('sb-status').textContent = 'Nothing selected to delete. Click a component or wire first, then press Delete or 🗑️.';
+      }
+    }
+
+    function resetCircuitStates() {
+      for (const c of components) {
+        c.state.closed = false;
+        c.state.energized = false;
+        c.state.running = false;
+        c.state.pressed = false;
+        c.state.rpm = 0;
+        c.state.elapsed = 0;
+        c.state.phase = 'IDLE';
+      }
+      for (const w of wires) { w.isLive = false; w.currentFlow = false; }
+      updateMotorHum(false, 0);
+      document.getElementById('sb-status').textContent = 'Circuit states reset to default.';
+      render();
+    }
+
+    // Canvas Mouse Listeners
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const rawX = (e.clientX - rect.left) * scaleX;
+      const rawY = (e.clientY - rect.top) * scaleY;
+      mousePos.x = snap(rawX);
+      mousePos.y = snap(rawY);
+      document.getElementById('sb-coords').textContent = `X: ${mousePos.x}, Y: ${mousePos.y}`;
+
+      // Multimeter probe tooltip
+      const probeEl = document.getElementById('probe-tooltip');
+      const termUnder = findTerminalAt(rawX, rawY);
+
+      // Check wire hovering with generous 12px touch radius
+      hoveredWire = null;
+      if (!isDragging && !selectedComponentType && !selectedTerminal) {
+        const termMap = new Map();
+        for (const c of components) {
+          for (const t of c.terminals) {
+            termMap.set(t.id, { x: c.x + t.rx, y: c.y + t.ry, side: t.side, comp: c, term: t });
+          }
+        }
+
+        // If touching a terminal directly, find the wire connected to that terminal!
+        if (termUnder) {
+          hoveredWire = wires.find(w => w.fromId === termUnder.term.id || w.toId === termUnder.term.id) || null;
+        }
+
+        // If not on terminal, check proximity to any wire
+        if (!hoveredWire) {
+          for (const w of wires) {
+            const p1 = termMap.get(w.fromId);
+            const p2 = termMap.get(w.toId);
+            if (!p1 || !p2) continue;
+
+            const pts = getWirePoints(w, p1, p2);
+            for (let i = 0; i < pts.length - 1; i++) {
+              const d = distToSegment(rawX, rawY, pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y);
+              if (d <= 14) { // Generous 14px touch radius!
+                hoveredWire = w;
+                break;
+              }
+            }
+            if (hoveredWire) break;
+          }
+        }
+      }
+
+      const activeWire = hoveredWire || selectedWire;
+
+      if (activeWire) {
+        const termMap = new Map();
+        for (const c of components) {
+          for (const t of c.terminals) termMap.set(t.id, { comp: c, term: t });
+        }
+        const p1 = termMap.get(activeWire.fromId);
+        const p2 = termMap.get(activeWire.toId);
+
+        probeEl.style.display = 'block';
+        probeEl.style.left = (e.clientX + 16) + 'px';
+        probeEl.style.top = (e.clientY + 16) + 'px';
+        probeEl.innerHTML = `
+          <div style="font-weight:bold; font-size:12px; color:#00e5ff; border-bottom:1px solid rgba(0,229,255,0.4); padding-bottom:4px; margin-bottom:6px;">
+            ⚡ WIRE CONNECTION INSPECTOR
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <span style="background:#00e676; color:#000; font-weight:bold; font-size:9px; padding:1px 6px; border-radius:3px;">FROM</span>
+            <b style="color:#fff; font-size:11px;">${p1 ? p1.comp.tag : 'Source'}</b>
+            <span style="color:#00e676; font-weight:bold;">[Pin ${p1 ? p1.term.name : activeWire.fromId}]</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <span style="background:#00e5ff; color:#000; font-weight:bold; font-size:9px; padding:1px 6px; border-radius:3px;">TO</span>
+            <b style="color:#fff; font-size:11px;">${p2 ? p2.comp.tag : 'Dest'}</b>
+            <span style="color:#00e5ff; font-weight:bold;">[Pin ${p2 ? p2.term.name : activeWire.toId}]</span>
+          </div>
+          <div style="margin-top:5px; color:#ffd600; font-size:10px;">
+            <b>Status:</b> ${activeWire.isLive ? (activeWire.currentFlow ? '⚡ ACTIVE LOAD CURRENT' : '⚡ 400V/230V LIVE') : '○ COLD (0V)'}
+          </div>
+          <div style="margin-top:3px; color:#90a4ae; font-size:9px;">
+            💡 Click to ${selectedWire === activeWire ? 'unlock' : 'lock'} wire highlight
+          </div>
+        `;
+        canvas.style.cursor = 'pointer';
+        document.getElementById('sb-status').textContent = `Wire: FROM ${p1 ? p1.comp.tag + ' [' + p1.term.name + ']' : activeWire.fromId} ➔ TO ${p2 ? p2.comp.tag + ' [' + p2.term.name + ']' : activeWire.toId}`;
+      } else if (termUnder) {
+        const comp = termUnder.comp;
+        const isHot = termUnder.term.voltage && termUnder.term.voltage.includes('HOT');
+        const isNeutral = termUnder.term.voltage && termUnder.term.voltage.includes('NEUTRAL');
+        const voltStr = isHot ? '400V AC (Phase Line)' : (isNeutral ? '0V AC (Neutral Return)' : '0V (Cold / Isolated)');
+        probeEl.style.display = 'block';
+        probeEl.style.left = (e.clientX + 14) + 'px';
+        probeEl.style.top = (e.clientY + 14) + 'px';
+        probeEl.innerHTML = `⚡ <b>TERMINAL PIN:</b> ${termUnder.term.name} [${comp.tag}]<br><b>Potential:</b> ${voltStr}<br><b>State:</b> ${isHot ? '<span style="color:#ff9100">LIVE ENERGIZED</span>' : '<span style="color:#78909c">DE-ENERGIZED</span>'}`;
+      } else {
+        probeEl.style.display = 'none';
+      }
+
+      // Check hover on floating [✕ DEL] badge of selected component
+      if (!isSimulating && selectedComp) {
+        const bx = selectedComp.x + selectedComp.w - 24;
+        const by = selectedComp.y - 24;
+        if (rawX >= bx && rawX <= bx + 26 && rawY >= by && rawY <= by + 18) {
+          canvas.style.cursor = 'pointer';
+          document.getElementById('sb-status').textContent = `Click [✕ DEL] to delete ${selectedComp.tag} (or press Delete key)`;
+          return;
+        }
+      }
+
+      if (isDragging && draggedComp) {
+        draggedComp.x = snap(rawX - dragOffsetX);
+        draggedComp.y = snap(rawY - dragOffsetY);
+        render();
+        return;
+      }
+
+      if (isSimulating) {
+        const hoverComp = findComponentAt(rawX, rawY);
+        if (hoverComp && (hoverComp.type === 'DISYUNTOR_3P' || hoverComp.type.startsWith('PUL_'))) {
+          canvas.style.cursor = 'pointer';
+        } else {
+          canvas.style.cursor = 'default';
+        }
+      } else if (toolMode === 'POINTER') {
+        const hoverComp = findComponentAt(rawX, rawY);
+        canvas.style.cursor = hoverComp ? 'grab' : 'default';
+      } else {
+        canvas.style.cursor = 'crosshair';
+      }
+
+      if (selectedTerminal) render();
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const rawX = (e.clientX - rect.left) * scaleX;
+      const rawY = (e.clientY - rect.top) * scaleY;
+      const x = snap(rawX);
+      const y = snap(rawY);
+
+      // 1. Click on Floating [✕ DEL] badge of selected component
+      if (!isSimulating && selectedComp) {
+        const bx = selectedComp.x + selectedComp.w - 24;
+        const by = selectedComp.y - 24;
+        if (rawX >= bx && rawX <= bx + 26 && rawY >= by && rawY <= by + 18) {
+          deleteSelected();
+          return;
+        }
+      }
+
+      // 2. Interactive Component Simulation Clicks (Priority 1 when simulation is active!)
+      if (isSimulating) {
+        const comp = findComponentAt(rawX, rawY);
+        if (comp && (comp.type === 'DISYUNTOR_3P' || comp.type.startsWith('PUL_'))) {
+          if (comp.type === 'DISYUNTOR_3P') {
+            comp.state.closed = !comp.state.closed;
+            playSound('BREAKER');
+            document.getElementById('sb-status').textContent = `Motor Breaker (-QF1) ${comp.state.closed ? 'CLOSED [POWER ON]' : 'OPENED [POWER OFF]'}`;
+            stepSolver();
+            render();
+          } else if (comp.type === 'PUL_START') {
+            comp.state.pressed = true;
+            playSound('CLICK');
+            document.getElementById('sb-status').textContent = `START Pushbutton (${comp.tag}) PRESSED`;
+            stepSolver();
+            render();
+            setTimeout(() => {
+              comp.state.pressed = false;
+              stepSolver();
+              render();
+            }, 300);
+          } else if (comp.type === 'PUL_STOP') {
+            comp.state.pressed = true;
+            playSound('CLICK');
+            document.getElementById('sb-status').textContent = `STOP Pushbutton (${comp.tag}) PRESSED`;
+            stepSolver();
+            render();
+            setTimeout(() => {
+              comp.state.pressed = false;
+              stepSolver();
+              render();
+            }, 300);
+          }
+          return;
+        }
+      }
+
+      // 3. Wire Click Selection Lock (Inspect / Highlight wire)
+      if (hoveredWire) {
+        selectedWire = (selectedWire === hoveredWire) ? null : hoveredWire;
+        selectedComp = null;
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = selectedWire ? 'Wire trace selected. Press Delete or click 🗑️ to delete.' : 'Wire unselected.';
+        render();
+        return;
+      }
+
+      // 4. Component Placement
+      if (selectedComponentType) {
+        saveState();
+        addComponent(selectedComponentType.type, selectedComponentType.tag, x, y);
+        selectedComponentType = null;
+        document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('sb-status').textContent = 'Component placed. Press Ctrl+Z to Undo.';
+        render();
+        return;
+      }
+
+      // 5. Wire Tool Connection (when clicking a terminal pin)
+      if (toolMode === 'WIRE') {
+        const found = findTerminalAt(rawX, rawY);
+        if (found) {
+          if (!selectedTerminal) {
+            selectedTerminal = found;
+            selectedComp = null;
+            selectedWire = null;
+            updateDeleteButtonUI();
+            document.getElementById('sb-status').textContent = `Connection started at pin ${found.term.name} (${found.comp.tag}). Click target pin.`;
+          } else {
+            if (selectedTerminal.term.id !== found.term.id) {
+              saveState();
+              wires.push({
+                fromId: selectedTerminal.term.id,
+                toId: found.term.id,
+                color: activeWireColor,
+                wireType: activeWireType,
+                isLive: false,
+                currentFlow: false
+              });
+              document.getElementById('sb-status').textContent = `Connected pin ${selectedTerminal.term.name} to ${found.term.name}. Press Ctrl+Z to Undo.`;
+            }
+            selectedTerminal = null;
+            render();
+          }
+          return;
+        } else {
+          if (selectedTerminal) {
+            selectedTerminal = null;
+            document.getElementById('sb-status').textContent = 'Wire placement cancelled.';
+            render();
+            return;
+          }
+        }
+      }
+
+      // 6. Direct Component Selection & Dragging (Active in both POINTER and WIRE modes!)
+      const comp = findComponentAt(rawX, rawY);
+      if (comp) {
+        selectedComp = comp;
+        selectedWire = null;
+        updateDeleteButtonUI();
+        isDragging = true;
+        draggedComp = comp;
+        dragOffsetX = rawX - comp.x;
+        dragOffsetY = rawY - comp.y;
+        dragStartX = comp.x;
+        dragStartY = comp.y;
+        dragStartSnapshot = JSON.stringify({
+          components: components.map(c => ({
+            id: c.id, type: c.type, tag: c.tag, x: c.x, y: c.y, w: c.w, h: c.h,
+            terminals: c.terminals.map(t => ({ ...t })),
+            state: { ...c.state }
+          })),
+          wires: wires.map(w => ({ ...w }))
+        });
+        canvas.style.cursor = 'grabbing';
+        document.getElementById('sb-status').textContent = `Selected: ${comp.tag} (${comp.type}). Drag to reposition, or press Delete / click ✕ to delete.`;
+        render();
+        return;
+      } else {
+        selectedComp = null;
+        selectedWire = null;
+        updateDeleteButtonUI();
+        render();
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      hoveredWire = null;
+      if (!selectedWire) {
+        document.getElementById('probe-tooltip').style.display = 'none';
+      }
+      render();
+    });
+
+    // Touchscreen Support (Tablet, Mobile, Touch laptop)
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        const t = e.touches[0];
+        const me = new MouseEvent('mousemove', { clientX: t.clientX, clientY: t.clientY });
+        canvas.dispatchEvent(me);
+        const meDown = new MouseEvent('mousedown', { clientX: t.clientX, clientY: t.clientY });
+        canvas.dispatchEvent(meDown);
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        const t = e.touches[0];
+        const me = new MouseEvent('mousemove', { clientX: t.clientX, clientY: t.clientY });
+        canvas.dispatchEvent(me);
+      }
+    }, { passive: true });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        if (draggedComp && dragStartSnapshot) {
+          if (draggedComp.x !== dragStartX || draggedComp.y !== dragStartY) {
+            if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== dragStartSnapshot) {
+              undoStack.push(dragStartSnapshot);
+              if (undoStack.length > MAX_HISTORY) undoStack.shift();
+              redoStack.length = 0;
+              updateUndoRedoUI();
+              document.getElementById('sb-status').textContent = `Moved ${draggedComp.tag}. Press Ctrl+Z to Undo.`;
+            }
+          }
+        }
+        isDragging = false;
+        draggedComp = null;
+        dragStartSnapshot = null;
+        canvas.style.cursor = toolMode === 'POINTER' ? 'grab' : 'crosshair';
+        render();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      // Undo: Ctrl+Z / Cmd+Z (without Shift)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      // Redo: Ctrl+Y / Cmd+Y or Ctrl+Shift+Z / Cmd+Shift+Z
+      if (((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
+          ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'))) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      if (e.key === 'Escape') {
+        selectedTerminal = null;
+        selectedComponentType = null;
+        selectedWire = null;
+        selectedComp = null;
+        updateDeleteButtonUI();
+        document.getElementById('probe-tooltip').style.display = 'none';
+        document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('sb-status').textContent = 'Operation cancelled. Selection cleared.';
+        render();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!isSimulating && (selectedComp || selectedWire)) {
+          e.preventDefault();
+          deleteSelected();
+        }
+      }
+    });
+
+    // Right-Click Context Actions (Quick Delete or Cancel)
+    canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (isSimulating) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const rawX = (e.clientX - rect.left) * scaleX;
+      const rawY = (e.clientY - rect.top) * scaleY;
+
+      if (selectedTerminal || selectedComponentType) {
+        selectedTerminal = null;
+        selectedComponentType = null;
+        document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('sb-status').textContent = 'Action cancelled.';
+        render();
+        return;
+      }
+
+      const comp = findComponentAt(rawX, rawY);
+      if (comp) {
+        selectedComp = comp;
+        selectedWire = null;
+        deleteSelected();
+        return;
+      }
+
+      if (hoveredWire) {
+        selectedWire = hoveredWire;
+        selectedComp = null;
+        deleteSelected();
+        return;
+      }
+
+      selectedComp = null;
+      selectedWire = null;
+      updateDeleteButtonUI();
+      render();
+    });
+
+    // TRUE GRAPH-BASED BFS ELECTRICAL POTENTIAL & POWER FLOW SOLVER
+    function stepSolver() {
+      if (!isSimulating || isPaused) return;
+      animTick++;
+
+      // 1. Build Terminal Graph Map
+      const termMap = new Map();
+      for (const c of components) {
+        for (const t of c.terminals) {
+          t.voltage = null; // Clear voltage
+          termMap.set(t.id, { term: t, comp: c, edges: [] });
+        }
+      }
+
+      // Add External Wire Connections to Graph
+      for (const w of wires) {
+        const nodeA = termMap.get(w.fromId);
+        const nodeB = termMap.get(w.toId);
+        if (nodeA && nodeB) {
+          nodeA.edges.push({ target: nodeB, wire: w });
+          nodeB.edges.push({ target: nodeA, wire: w });
+        }
+      }
+
+      // Add Internal Switch Contacts to Graph
+      for (const c of components) {
+        // Motor Breaker -QF1 (Switches 1-2, 3-4, 5-6)
+        if (c.type === 'DISYUNTOR_3P' && c.state.closed) {
+          for (let i = 0; i < 3; i++) {
+            const inNode = termMap.get(c.terminals[i].id);
+            const outNode = termMap.get(c.terminals[i + 3].id);
+            if (inNode && outNode) {
+              inNode.edges.push({ target: outNode, internal: true });
+              outNode.edges.push({ target: inNode, internal: true });
+            }
+          }
+        }
+        // Real 2D Contactor (Power Poles 1-2, 3-4, 5-6, and Aux NO Latch 13-14)
+        else if (c.type === 'CONTACTOR_3P' && (c.state.closed || c.state.energized)) {
+          // Power poles (1-2, 3-4, 5-6)
+          for (let i = 0; i < 3; i++) {
+            const inNode = termMap.get(c.terminals[i].id);
+            const outNode = termMap.get(c.terminals[i + 5].id);
+            if (inNode && outNode) {
+              inNode.edges.push({ target: outNode, internal: true });
+              outNode.edges.push({ target: inNode, internal: true });
+            }
+          }
+          // Built-in Aux Latch Contact (13-14)
+          const n13 = termMap.get(c.terminals[3].id);
+          const n14 = termMap.get(c.terminals[8].id);
+          if (n13 && n14) {
+            n13.edges.push({ target: n14, internal: true });
+            n14.edges.push({ target: n13, internal: true });
+          }
+        }
+        // Pushbuttons
+        else if (c.type === 'PUL_START' && c.state.pressed) {
+          const n1 = termMap.get(c.terminals[0].id);
+          const n2 = termMap.get(c.terminals[1].id);
+          if (n1 && n2) {
+            n1.edges.push({ target: n2, internal: true });
+            n2.edges.push({ target: n1, internal: true });
+          }
+        } else if (c.type === 'PUL_STOP' && !c.state.pressed) {
+          const n1 = termMap.get(c.terminals[0].id);
+          const n2 = termMap.get(c.terminals[1].id);
+          if (n1 && n2) {
+            n1.edges.push({ target: n2, internal: true });
+            n2.edges.push({ target: n1, internal: true });
+          }
+        }
+        // Star-Delta Timer Relay Internal Contacts (15-18 for Star, 15-28 for Delta)
+        else if (c.type === 'TIMER_STAR_DELTA' && (c.state.energized || c.state.phase === 'STAR' || c.state.phase === 'DELTA')) {
+          const n15 = termMap.get(c.terminals[1].id); // Terminal 15 (Common)
+          if (c.state.phase === 'STAR') {
+            const n18 = termMap.get(c.terminals[3].id); // Terminal 18(Y)
+            if (n15 && n18) {
+              n15.edges.push({ target: n18, internal: true });
+              n18.edges.push({ target: n15, internal: true });
+            }
+          } else if (c.state.phase === 'DELTA') {
+            const n28 = termMap.get(c.terminals[4].id); // Terminal 28(Delta)
+            if (n15 && n28) {
+              n15.edges.push({ target: n28, internal: true });
+              n28.edges.push({ target: n15, internal: true });
+            }
+          }
+        }
+        // 6-Terminal Induction Motor Internal Phase Windings: U1-U2, V1-V2, W1-W2
+        else if (c.type === 'MOTOR_6T') {
+          // Terminals: 0=U1, 1=V1, 2=W1, 3=W2, 4=U2, 5=V2
+          const pairs = [[0, 4], [1, 5], [2, 3]];
+          for (const [a, b] of pairs) {
+            const na = termMap.get(c.terminals[a].id);
+            const nb = termMap.get(c.terminals[b].id);
+            if (na && nb) {
+              na.edges.push({ target: nb, internal: true });
+              nb.edges.push({ target: na, internal: true });
+            }
+          }
+        }
+      }
+
+      // 2. BFS Potential Propagation from Power Sources
+      const phaseQueue = [];
+      for (const c of components) {
+        if (c.type === 'FEED_3P' || c.type === 'FEED_1P') {
+          for (let i = 0; i < (c.type === 'FEED_3P' ? 3 : 1); i++) {
+            const t = c.terminals[i];
+            t.voltage = 'HOT_PHASE';
+            phaseQueue.push(termMap.get(t.id));
+          }
+        }
+      }
+
+      while (phaseQueue.length > 0) {
+        const curr = phaseQueue.shift();
+        for (const edge of curr.edges) {
+          if (!edge.target.term.voltage) {
+            edge.target.term.voltage = 'HOT_PHASE';
+            phaseQueue.push(edge.target);
+          }
+        }
+      }
+
+      // Trace NEUTRAL Return (0V)
+      const neutralQueue = [];
+      for (const c of components) {
+        if (c.type === 'FEED_3P' || c.type === 'FEED_1P') {
+          const nTerm = c.terminals[c.type === 'FEED_3P' ? 3 : 1];
+          nTerm.voltage = 'NEUTRAL';
+          neutralQueue.push(termMap.get(nTerm.id));
+        }
+      }
+
+      while (neutralQueue.length > 0) {
+        const curr = neutralQueue.shift();
+        for (const edge of curr.edges) {
+          if (!edge.target.term.voltage) {
+            edge.target.term.voltage = 'NEUTRAL';
+            neutralQueue.push(edge.target);
+          }
+        }
+      }
+
+      // 3. Evaluate Real Contactor Coils Directly on the Contactors!
+      const contactors = components.filter(c => c.type === 'CONTACTOR_3P');
+      const kmMain = contactors.find(c => c.tag.includes('Main')) || contactors.find(c => c.tag === '-KM3' || c.tag === '-KM1');
+      const kmStar = contactors.find(c => c.tag.includes('Star')) || contactors.find(c => c.tag === '-KM1' || c.tag === '-KM2');
+      const kmDelta = contactors.find(c => c.tag.includes('Delta')) || contactors.find(c => c.tag === '-KM2' || c.tag === '-KM3');
+      const timer = components.find(c => c.type === 'TIMER_STAR_DELTA');
+      const motor = components.find(c => c.type === 'MOTOR_3P' || c.type === 'MOTOR_6T');
+      const lampRun = components.find(c => c.type === 'PILO_VER');
+      const lampStop = components.find(c => c.type === 'PILO_ROJ');
+      const lampStar = components.find(c => c.type === 'PILO_AMA');
+
+      // Main Contactor Coil Evaluation (Terminal A1 = index 4, Terminal A2 = index 9)
+      if (kmMain) {
+        const prevEnergized = kmMain.state.energized;
+        const a1Hot = kmMain.terminals[4].voltage === 'HOT_PHASE';
+        const a2Neutral = kmMain.terminals[9].voltage === 'NEUTRAL';
+        kmMain.state.energized = a1Hot && a2Neutral;
+        kmMain.state.closed = kmMain.state.energized;
+
+        if (!prevEnergized && kmMain.state.energized) playSound('CONTACTOR_IN');
+        if (prevEnergized && !kmMain.state.energized) playSound('CONTACTOR_OUT');
+      }
+
+      // Pilot Lamps
+      if (lampRun) lampRun.state.energized = (lampRun.terminals[0].voltage === 'HOT_PHASE');
+      if (lampStop) lampStop.state.energized = (lampStop.terminals[0].voltage === 'HOT_PHASE');
+      if (lampStar) lampStar.state.energized = (lampStar.terminals[0].voltage === 'HOT_PHASE');
+
+      // Star-Delta Timing Stage Evaluation (Directly Controls Star and Delta Contactors!)
+      if (timer && kmMain) {
+        if (kmMain.state.energized) {
+          timer.state.energized = true;
+          timer.state.elapsed = (timer.state.elapsed || 0) + 0.04;
+          if (timer.state.elapsed < 4.0) {
+            timer.state.phase = 'STAR';
+            if (kmStar) { kmStar.state.energized = true; kmStar.state.closed = true; } // Star Contactor ON
+            if (kmDelta) { kmDelta.state.energized = false; kmDelta.state.closed = false; } // Delta Contactor OFF
+            if (lampStar) lampStar.state.energized = true;
+            if (lampRun) lampRun.state.energized = false;
+          } else {
+            if (timer.state.phase === 'STAR') playSound('CONTACTOR_IN');
+            timer.state.phase = 'DELTA';
+            if (kmStar) { kmStar.state.energized = false; kmStar.state.closed = false; } // Star Contactor Drops Out
+            if (kmDelta) { kmDelta.state.energized = true; kmDelta.state.closed = true; } // Delta Contactor Pulls In!
+            if (lampStar) lampStar.state.energized = false;
+            if (lampRun) lampRun.state.energized = true;
+          }
+        } else {
+          timer.state.energized = false;
+          timer.state.elapsed = 0;
+          timer.state.phase = 'IDLE';
+          if (kmStar) { kmStar.state.energized = false; kmStar.state.closed = false; }
+          if (kmDelta) { kmDelta.state.energized = false; kmDelta.state.closed = false; }
+          if (lampStar) lampStar.state.energized = false;
+          if (lampRun) lampRun.state.energized = false;
+        }
+      }
+
+      // Motor Power Evaluation
+      if (motor) {
+        const u1Hot = motor.terminals[0].voltage === 'HOT_PHASE';
+        const hasReturn = (motor.type === 'MOTOR_6T')
+          ? (kmMain && kmMain.state.closed && ((kmStar && kmStar.state.closed) || (kmDelta && kmDelta.state.closed)))
+          : (kmMain ? kmMain.state.closed : false);
+        const isRunning = u1Hot && hasReturn;
+        motor.state.running = isRunning;
+        if (isRunning) {
+          if (timer && timer.state.phase === 'STAR') {
+            motor.state.phase = 'STAR';
+            motor.state.rpm = 1200;
+            motor.state.angle = ((motor.state.angle || 0) + 16) % 360;
+          } else {
+            motor.state.phase = 'DELTA';
+            motor.state.rpm = 1440;
+            motor.state.angle = ((motor.state.angle || 0) + 24) % 360;
+          }
+        } else {
+          motor.state.rpm = 0;
+          motor.state.phase = 'IDLE';
+        }
+        updateMotorHum(isRunning, motor.state.rpm);
+      }
+
+      // 4. Update Wire Live & Current States Based on Exact Node Potentials
+      for (const w of wires) {
+        const nodeA = termMap.get(w.fromId);
+        const nodeB = termMap.get(w.toId);
+        if (nodeA && nodeB) {
+          const vA = nodeA.term.voltage;
+          const vB = nodeB.term.voltage;
+          w.isLive = (vA === 'HOT_PHASE' || vB === 'HOT_PHASE');
+          w.currentFlow = w.isLive && (motor ? motor.state.running : false);
+        }
+      }
+
+      // 5. Update Explainer Banner
+      updateEducationalExplainerBanner();
+    }
+
+    function updateEducationalExplainerBanner() {
+      const qf = components.find(c => c.type === 'DISYUNTOR_3P');
+      const contactors = components.filter(c => c.type === 'CONTACTOR_3P');
+      const kmMain = contactors.find(c => c.tag.includes('Main')) || contactors.find(c => c.tag === '-KM3' || c.tag === '-KM1');
+      const kmStar = contactors.find(c => c.tag.includes('Star')) || contactors.find(c => c.tag === '-KM1' || c.tag === '-KM2');
+      const kmDelta = contactors.find(c => c.tag.includes('Delta')) || contactors.find(c => c.tag === '-KM2' || c.tag === '-KM3');
+      const timer = components.find(c => c.type === 'TIMER_STAR_DELTA');
+      const motor = components.find(c => c.type === 'MOTOR_3P' || c.type === 'MOTOR_6T');
+      const badge = document.getElementById('flow-badge');
+      const desc = document.getElementById('flow-desc');
+
+      if (!isSimulating) {
+        badge.className = 'flow-badge ready';
+        badge.textContent = 'PRACTICE MODE: WIRING LAB';
+        desc.textContent = 'Connect components using the Reference Diagram on the right. When ready, click ▶ Simulation!';
+        return;
+      }
+
+      if (!qf || !qf.state.closed) {
+        badge.className = 'flow-badge ready';
+        badge.textContent = 'STAGE 1: 400V AT BREAKER INPUT';
+        desc.textContent = `⚡ 400V Supply is active and reaches ${qf ? qf.tag : 'Breaker'} inputs 1, 3, 5. Power STOPS here because breaker contacts are open. Click breaker to close!`;
+        return;
+      }
+
+      if (!kmMain || !kmMain.state.energized) {
+        badge.className = 'flow-badge ready';
+        badge.textContent = 'STAGE 2: POWER AT CONTACTOR & BUTTON';
+        desc.textContent = `⚡ Breaker is CLOSED! 400V flows to Main Contactor (${kmMain ? kmMain.tag : 'KM'}) inputs and Start Button. Click Green START to energize!`;
+        return;
+      }
+
+      if (timer && timer.state.phase === 'STAR') {
+        const rem = Math.max(0, 4.0 - timer.state.elapsed).toFixed(1);
+        badge.className = 'flow-badge star';
+        badge.textContent = `STAGE 3A: STAR MODE (${rem}s)`;
+        desc.textContent = `★ STAR ACCELERATION: ${kmMain.tag} & ${kmStar ? kmStar.tag : 'Star'} are CLOSED. Motor running on 230V reduced starting current (1200 RPM). Timer switching in ${rem}s...`;
+        return;
+      }
+
+      if (timer && timer.state.phase === 'DELTA') {
+        badge.className = 'flow-badge delta';
+        badge.textContent = 'STAGE 3B: FULL DELTA RUNNING (Δ)';
+        desc.textContent = `⚡ DELTA RUNNING: Timer expired! Star dropped out and ${kmDelta ? kmDelta.tag : 'Delta'} pulled in. Full 400V line voltage across motor windings (1440 RPM).`;
+        return;
+      }
+
+      if (motor && motor.state.running) {
+        badge.className = 'flow-badge running';
+        badge.textContent = 'STAGE 3: MOTOR RUNNING (1440 RPM)';
+        desc.textContent = `⚡ LATCH ACTIVE: Contactor ${kmMain ? kmMain.tag : 'KM'} is locked ON. 400V flows into Motor windings. Press Red STOP to break latch.`;
+        return;
+      }
+    }
+
+    // Callout badge directly on canvas showing FROM / TO terminals when wire is touched
+    function drawEndpointBadge(ctx, pt, text, isFrom, animTick) {
+      ctx.save();
+      ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
+      const tw = ctx.measureText(text).width;
+      const bw = tw + 24;
+      const bh = 24;
+
+      let bx = pt.x - bw / 2;
+      let by = pt.side === 'BOTTOM' ? pt.y + 16 : pt.y - bh - 16;
+
+      bx = Math.max(12, Math.min(canvas.width - bw - 12, bx));
+      by = Math.max(12, Math.min(canvas.height - bh - 12, by));
+
+      const pulse = Math.sin(animTick * 0.15) * 3;
+      const color = isFrom ? '#00e676' : '#00e5ff';
+
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10 + pulse;
+
+      // Dark card container with vibrant glowing border
+      ctx.fillStyle = '#0a101d';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, bw, bh, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      // Sharp directional arrow pointing straight at terminal screw
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (pt.side === 'BOTTOM') {
+        ctx.moveTo(pt.x, pt.y + 4);
+        ctx.lineTo(pt.x - 6, by);
+        ctx.lineTo(pt.x + 6, by);
+      } else {
+        ctx.moveTo(pt.x, pt.y - 4);
+        ctx.lineTo(pt.x - 6, by + bh);
+        ctx.lineTo(pt.x + 6, by + bh);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // Badge label text
+      ctx.fillStyle = color;
+      ctx.fillText(text, bx + 12, by + 16);
+
+      // Radar pulsating ring at terminal screw
+      const ripple = (animTick * 2.5) % 36;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 4 + ripple * 0.45, 0, Math.PI * 2);
+      ctx.strokeStyle = isFrom ? `rgba(0, 230, 118, ${1 - ripple / 36})` : `rgba(0, 229, 255, ${1 - ripple / 36})`;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // WIRE INSPECTION OVERLAYS (Drawn as top-most layer so badges are 100% visible)
+    function renderWireInspectionOverlays() {
+      const targetWire = hoveredWire || selectedWire;
+      if (!targetWire) return;
+
+      const termMap = new Map();
+      for (const c of components) {
+        for (const t of c.terminals) {
+          termMap.set(t.id, { x: c.x + t.rx, y: c.y + t.ry, side: t.side, comp: c, term: t });
+        }
+      }
+
+      const p1 = termMap.get(targetWire.fromId);
+      const p2 = termMap.get(targetWire.toId);
+      if (p1 && p2) {
+        drawEndpointBadge(ctx, p1, '🟢 FROM: ' + p1.comp.tag + ' [' + p1.term.name + ']', true, animTick);
+        drawEndpointBadge(ctx, p2, '🎯 TO: ' + p2.comp.tag + ' [' + p2.term.name + ']', false, animTick);
+      }
+    }
+
+    // WIRE RENDERING WITH ANTI-OVERLAP DUCT ROUTING
+    function renderWires() {
+      const termMap = new Map();
+      for (const c of components) {
+        for (const t of c.terminals) {
+          termMap.set(t.id, { x: c.x + t.rx, y: c.y + t.ry, side: t.side, comp: c, term: t });
+        }
+      }
+
+      const targetWire = hoveredWire || selectedWire;
+
+      for (const w of wires) {
+        const p1 = termMap.get(w.fromId);
+        const p2 = termMap.get(w.toId);
+        if (!p1 || !p2) continue;
+
+        const isThisHovered = (w === targetWire);
+
+        ctx.save();
+
+        // DIMMING: If ANY wire is touched, dim all other wires to 15% opacity so the touched wire stands out 100%!
+        if (targetWire) {
+          ctx.globalAlpha = isThisHovered ? 1.0 : 0.15;
+        } else {
+          ctx.globalAlpha = 1.0;
+        }
+
+        ctx.beginPath();
+
+        // High-contrast live electrical potential state
+        if (w.isLive) {
+          ctx.strokeStyle = w.currentFlow ? '#00e676' : '#ff9100';
+          ctx.lineWidth = w.currentFlow ? 2.8 : 2.2;
+          ctx.shadowColor = w.currentFlow ? '#00e676' : '#ff9100';
+          ctx.shadowBlur = w.currentFlow ? 8 : 5;
+        } else {
+          if (isThisHovered) {
+            ctx.strokeStyle = '#00e5ff';
+            ctx.lineWidth = 4.5;
+            ctx.shadowColor = '#00e5ff';
+            ctx.shadowBlur = 14;
+          } else {
+            ctx.strokeStyle = w.color || (w.wireType === 'NEUTRAL' ? '#0000d0' : (w.wireType === 'PE' ? '#008000' : '#78909c'));
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 0;
+          }
+        }
+
+        const pts = getWirePoints(w, p1, p2);
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          ctx.lineTo(pts[i].x, pts[i].y);
+        }
+        ctx.stroke();
+
+        // Compute total path length and segments
+        let totalLen = 0;
+        const segLens = [];
+        for (let i = 0; i < pts.length - 1; i++) {
+          const len = Math.hypot(pts[i+1].x - pts[i].x, pts[i+1].y - pts[i].y);
+          segLens.push(len);
+          totalLen += len;
+        }
+
+        function getPointAtDist(d) {
+          let cur = d;
+          for (let i = 0; i < segLens.length; i++) {
+            if (cur <= segLens[i]) {
+              const ratio = segLens[i] > 0 ? cur / segLens[i] : 0;
+              return {
+                x: pts[i].x + (pts[i+1].x - pts[i].x) * ratio,
+                y: pts[i].y + (pts[i+1].y - pts[i].y) * ratio
+              };
+            }
+            cur -= segLens[i];
+          }
+          return pts[pts.length - 1];
+        }
+
+        // 1. ANIMATED DOT WHERE THE POINT IS CONNECTED FROM (Origin Connection Point p1)
+        const pulsePhase = ((animTick * 1.8 + (w.lane || 0) * 12) % 45) / 45;
+        const rippleR = 3.5 + pulsePhase * 11;
+        const rippleAlpha = Math.max(0, 1 - pulsePhase);
+
+        ctx.save();
+        // Expanding radar ripple at connection origin
+        ctx.beginPath();
+        ctx.arc(p1.x, p1.y, rippleR, 0, Math.PI * 2);
+        ctx.strokeStyle = w.isLive ? (w.currentFlow ? `rgba(0, 230, 118, ${rippleAlpha})` : `rgba(255, 145, 0, ${rippleAlpha})`) : `rgba(0, 229, 255, ${rippleAlpha * 0.8})`;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // Core Origin Dot (Where wire connects from)
+        ctx.beginPath();
+        ctx.arc(p1.x, p1.y, 4.2, 0, Math.PI * 2);
+        ctx.fillStyle = w.isLive ? (w.currentFlow ? '#00e676' : '#ff9100') : (w.color || '#37474f');
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Terminating dot at destination p2
+        ctx.beginPath();
+        ctx.arc(p2.x, p2.y, 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = ctx.fillStyle;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.restore();
+
+        // 2. TRAVELING DOTS ALONG WIRE (Flowing from origin p1 to destination p2)
+        const shouldAnimateDots = (w.currentFlow && isSimulating) || w.isLive || isThisHovered;
+        if (shouldAnimateDots && totalLen > 10) {
+          const dotSpacing = 28;
+          const speed = w.currentFlow ? 1.8 : 1.0;
+          const dotOffset = (animTick * speed) % dotSpacing;
+
+          ctx.save();
+          for (let d = dotOffset; d < totalLen; d += dotSpacing) {
+            const pt = getPointAtDist(d);
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 3.0, 0, Math.PI * 2);
+            ctx.fillStyle = w.currentFlow ? '#ffffff' : (w.isLive ? '#ffea00' : '#00e5ff');
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.shadowBlur = 6;
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      // Wire Tool Rubberband
+      if (selectedTerminal) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = activeWireColor;
+        ctx.lineWidth = 2.0;
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(selectedTerminal.x, selectedTerminal.y);
+        const midY = (selectedTerminal.y + mousePos.y) / 2;
+        ctx.lineTo(selectedTerminal.x, midY);
+        ctx.lineTo(mousePos.x, midY);
+        ctx.lineTo(mousePos.x, mousePos.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(selectedTerminal.x, selectedTerminal.y, 7, 0, Math.PI * 2);
+        ctx.strokeStyle = '#ff9800';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // MAIN RENDER LOOP
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Wires with live states
+      renderWires();
+
+      // 2. Draw Components
+      for (const c of components) {
+        ctx.save();
+        ctx.translate(c.x, c.y);
+
+        if (visualMode === '2D') {
+          draw2DComponent(c);
+        } else {
+          drawSchematicComponent(c);
+        }
+
+        // 3. Standoff Terminal Screws & Badges
+        for (const t of c.terminals) {
+          const isHot = t.voltage === 'HOT_PHASE';
+
+          ctx.beginPath();
+          ctx.fillStyle = isHot ? '#ff9100' : '#b0bec5';
+          ctx.arc(t.rx, t.ry, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = isHot ? '#ff6d00' : '#37474f';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.fillStyle = '#263238';
+          ctx.arc(t.rx, t.ry, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.save();
+          ctx.font = 'bold 8px Tahoma, Arial';
+          const txt = t.name;
+          const tw = ctx.measureText(txt).width;
+
+          let badgeX = t.rx - tw / 2 - 2;
+          let badgeY = t.ry < c.h / 2 ? t.ry - 14 : t.ry + 4;
+          if (t.side === 'LEFT') { badgeX = t.rx - tw - 6; badgeY = t.ry - 5; }
+          if (t.side === 'RIGHT') { badgeX = t.rx + 6; badgeY = t.ry - 5; }
+
+          ctx.fillStyle = isHot ? 'rgba(255, 243, 224, 0.95)' : 'rgba(255, 255, 255, 0.92)';
+          ctx.fillRect(badgeX, badgeY, tw + 4, 10);
+          ctx.strokeStyle = isHot ? '#ff9100' : '#90a4ae';
+          ctx.lineWidth = isHot ? 1 : 0.5;
+          ctx.strokeRect(badgeX, badgeY, tw + 4, 10);
+
+          ctx.fillStyle = isHot ? '#d50000' : '#0d47a1';
+          ctx.fillText(txt, badgeX + 2, badgeY + 8);
+          ctx.restore();
+        }
+
+        // Selection Bounding Box, Corner Grips, and Floating Delete Badge
+        if (selectedComp && selectedComp.id === c.id) {
+          ctx.strokeStyle = '#0066ff';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(-5, -5, c.w + 10, c.h + 10);
+          ctx.setLineDash([]);
+
+          // 4 Corner grips
+          ctx.fillStyle = '#0066ff';
+          ctx.fillRect(-7, -7, 6, 6);
+          ctx.fillRect(c.w + 1, -7, 6, 6);
+          ctx.fillRect(-7, c.h + 1, 6, 6);
+          ctx.fillRect(c.w + 1, c.h + 1, 6, 6);
+
+          // Floating Red Delete Badge [✕ DEL]
+          const bx = c.w - 24;
+          const by = -24;
+          ctx.fillStyle = '#d32f2f';
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(bx, by, 26, 18, 3);
+          else ctx.rect(bx, by, 26, 18);
+          ctx.fill();
+          ctx.strokeStyle = '#b71c1c';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('✕', bx + 7, by + 13);
+          ctx.font = 'bold 8px sans-serif';
+          ctx.fillText('DEL', bx + 18, by + 12);
+          ctx.textAlign = 'start';
+        }
+
+        ctx.restore();
+      }
+
+      // 4. WIRE INSPECTION OVERLAYS (Rendered on top of everything so it's 100% visible!)
+      renderWireInspectionOverlays();
+
+      // 5. Active Wiring Hint Beacon
+      renderWiringHintBeacon();
+    }
+
+    // PHOTOREALISTIC INDUSTRIAL 2D PANEL RENDERER
+    function draw2DComponent(c) {
+      const { w, h, state, tag, type } = c;
+
+      // 1. Power Supply Feed Block (3~ 400V)
+      if (type === 'FEED_3P') {
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#e0e0e0');
+        grad.addColorStop(1, '#b0bec5');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#37474f';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(0, 0, w, h);
+
+        ctx.fillStyle = '#b71c1c';
+        ctx.font = 'bold 10px Tahoma, Arial';
+        ctx.fillText('3~ 400V 50Hz', 8, 16);
+        ctx.fillStyle = '#263238';
+        ctx.font = '8px Arial';
+        ctx.fillText('L1  L2  L3   N   PE', 20, 28);
+      }
+
+      // 2. Motor Circuit Breaker / Guardamotor (-QF)
+      else if (type === 'DISYUNTOR_3P') {
+        const grad = ctx.createLinearGradient(0, 0, w, 0);
+        grad.addColorStop(0, '#424242');
+        grad.addColorStop(0.5, '#616161');
+        grad.addColorStop(1, '#37474f');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#212121';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(0, 0, w, h);
+
+        ctx.fillStyle = '#cfd8dc';
+        ctx.fillRect(10, 20, w - 20, h - 40);
+        ctx.strokeStyle = '#78909c';
+        ctx.strokeRect(10, 20, w - 20, h - 40);
+
+        // Rotary Switch Knob
+        const cx = w / 2;
+        const cy = h / 2 + 2;
+        ctx.fillStyle = '#212121';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(state.closed ? 0 : -Math.PI / 4);
+        ctx.fillStyle = state.closed ? '#00e676' : '#d50000';
+        ctx.fillRect(-5, -18, 10, 36);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-2, -16, 4, 10);
+        ctx.restore();
+
+        // Status Flag
+        ctx.fillStyle = state.closed ? '#00e676' : '#ff1744';
+        ctx.fillRect(w - 38, 24, 24, 12);
+        ctx.fillStyle = state.closed ? '#000' : '#fff';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText(state.closed ? 'ON' : 'OFF', w - 35, 33);
+
+        // Tag
+        ctx.fillStyle = '#0d47a1';
+        ctx.fillRect(12, 24, 28, 12);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText(tag, 14, 33);
+      }
+
+      // 3. TRUE INTEGRATED 2D CONTACTOR (Power 1-6 + Aux NO 13-14 + Coil A1-A2 on one component!)
+      else if (type === 'CONTACTOR_3P') {
+        const isClosed = state.energized || state.closed;
+
+        // Contactor Enclosure
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#f5f5f5');
+        grad.addColorStop(0.5, '#e0e0e0');
+        grad.addColorStop(1, '#bdbdbd');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#424242';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(0, 0, w, h);
+
+        // Separator between Power and Control/Coil sections
+        ctx.strokeStyle = '#9e9e9e';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(70, 0);
+        ctx.lineTo(70, h);
+        ctx.stroke();
+
+        // Central Solenoid Plunger Window
+        ctx.fillStyle = '#212121';
+        ctx.fillRect(14, h / 2 - 14, 46, 28);
+
+        const plungerOffset = isClosed ? 3 : 0;
+        ctx.fillStyle = isClosed ? '#d50000' : '#757575';
+        ctx.fillRect(18, h / 2 - 10 + plungerOffset, 38, 20);
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeRect(18, h / 2 - 10 + plungerOffset, 38, 20);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText(isClosed ? 'KM ON' : 'KM OFF', 22, h / 2 + 4 + plungerOffset);
+
+        // Active Solenoid Glow
+        if (isClosed) {
+          ctx.save();
+          ctx.strokeStyle = '#00e676';
+          ctx.lineWidth = 2.5;
+          ctx.shadowColor = '#00e676';
+          ctx.shadowBlur = 8;
+          ctx.strokeRect(2, 2, w - 4, h - 4);
+          ctx.restore();
+        }
+
+        // Section Labels
+        ctx.fillStyle = '#616161';
+        ctx.font = '7px Arial';
+        ctx.fillText('POWER 400V', 16, 20);
+        ctx.fillText('AUX 13-14', 74, 20);
+        ctx.fillText('COIL A1-A2', 74, h - 14);
+
+        // Star Contactor Shorting Busbar Feature (If Star Contactor -KM2)
+        if (tag.includes('Star') || tag.includes('KM2')) {
+          ctx.save();
+          ctx.fillStyle = '#ffd600';
+          ctx.fillRect(14, 2, 48, 8);
+          ctx.strokeStyle = '#b2a400';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(14, 2, 48, 8);
+          ctx.fillStyle = '#000';
+          ctx.font = 'bold 6px Arial';
+          ctx.fillText('STAR BRIDGE', 16, 8);
+          ctx.restore();
+        }
+
+        // Tag
+        ctx.fillStyle = '#0d47a1';
+        ctx.fillRect(10, h - 22, 54, 14);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText(tag, 12, h - 12);
+      }
+
+      // 4. Three-Phase Motor (-M, 3-Terminal or 6-Terminal)
+      else if (type === 'MOTOR_3P' || type === 'MOTOR_6T') {
+        const isRunning = state.running;
+        const is6T = type === 'MOTOR_6T';
+
+        const bodyW = w - (is6T ? 20 : 34);
+        const bodyH = h - 26;
+        const grad = ctx.createLinearGradient(0, 14, 0, 14 + bodyH);
+        grad.addColorStop(0, '#1565c0');
+        grad.addColorStop(0.5, '#1e88e5');
+        grad.addColorStop(1, '#0d47a1');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(0, 14, bodyW, bodyH, 8);
+        ctx.fill();
+        ctx.strokeStyle = '#0d47a1';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Stator Fins
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 1.5;
+        for (let y = 24; y < 14 + bodyH - 6; y += 8) {
+          ctx.beginPath();
+          ctx.moveTo(8, y);
+          ctx.lineTo(bodyW - 8, y);
+          ctx.stroke();
+        }
+
+        // Top Terminal Connection Box
+        ctx.fillStyle = '#263238';
+        ctx.fillRect(is6T ? 16 : 30, 0, is6T ? 152 : 68, 16);
+        ctx.strokeStyle = '#000';
+        ctx.strokeRect(is6T ? 16 : 30, 0, is6T ? 152 : 68, 16);
+
+        // Drive Shaft
+        const shaftY = 14 + bodyH / 2 - 8;
+        const shaftGrad = ctx.createLinearGradient(0, shaftY, 0, shaftY + 16);
+        shaftGrad.addColorStop(0, '#ffffff');
+        shaftGrad.addColorStop(0.5, '#b0bec5');
+        shaftGrad.addColorStop(1, '#78909c');
+        ctx.fillStyle = shaftGrad;
+        ctx.fillRect(bodyW, shaftY, 20, 16);
+        ctx.strokeStyle = '#37474f';
+        ctx.strokeRect(bodyW, shaftY, 20, 16);
+
+        // Rotating Fan Blades
+        const fanCx = bodyW - 8;
+        const fanCy = 14 + bodyH / 2;
+        ctx.save();
+        ctx.translate(fanCx, fanCy);
+        ctx.rotate((state.angle || 0) * Math.PI / 180);
+
+        ctx.fillStyle = isRunning ? '#00e676' : '#455a64';
+        for (let i = 0; i < 4; i++) {
+          ctx.rotate(Math.PI / 2);
+          ctx.fillRect(-2, -12, 4, 24);
+        }
+        ctx.restore();
+
+        // HUD Telemetry Bar
+        ctx.fillStyle = 'rgba(10, 15, 25, 0.9)';
+        ctx.fillRect(6, h - 22, bodyW - 12, 18);
+        ctx.strokeStyle = isRunning ? '#00e676' : '#546e7a';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(6, h - 22, bodyW - 12, 18);
+
+        ctx.font = 'bold 8px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(tag, 10, h - 10);
+
+        ctx.font = 'bold 8px Consolas, monospace';
+        if (isRunning) {
+          ctx.fillStyle = state.phase === 'STAR' ? '#ffd600' : '#00e676';
+          ctx.fillText(`${state.phase === 'STAR' ? 'Y 1200' : 'Δ 1440'} RPM (400V 3.8A)`, 52, h - 10);
+        } else {
+          ctx.fillStyle = '#78909c';
+          ctx.fillText('0 RPM [STOPPED]', 52, h - 10);
+        }
+      }
+
+      // 5. START Pushbutton (-SB2 Green)
+      else if (type === 'PUL_START') {
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#616161';
+        ctx.strokeRect(0, 0, w, h);
+
+        const btnOffset = state.pressed ? 4 : 0;
+        ctx.fillStyle = state.pressed ? '#00701a' : '#00c853';
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2 + btnOffset, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#2e7d32';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText('I', w / 2 - 3, h / 2 + 4 + btnOffset);
+
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText(tag, 4, 12);
+      }
+
+      // 6. STOP Pushbutton (-SB1 Red)
+      else if (type === 'PUL_STOP') {
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#616161';
+        ctx.strokeRect(0, 0, w, h);
+
+        const btnOffset = state.pressed ? 4 : 0;
+        ctx.fillStyle = state.pressed ? '#b71c1c' : '#d50000';
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2 + btnOffset, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#7f0000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText('O', w / 2 - 4, h / 2 + 4 + btnOffset);
+
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText(tag, 4, 12);
+      }
+
+      // 7. Pilot Indicator Lamps (-HL1, -HL2, -HL3)
+      else if (type === 'PILO_VER' || type === 'PILO_ROJ' || type === 'PILO_AMA') {
+        let baseColor = '#00e676';
+        let offColor = '#1b5e20';
+        if (type === 'PILO_ROJ') { baseColor = '#ff1744'; offColor = '#b71c1c'; }
+        if (type === 'PILO_AMA') { baseColor = '#ffd600'; offColor = '#f57f17'; }
+
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#757575';
+        ctx.strokeRect(0, 0, w, h);
+
+        const cx = w / 2;
+        const cy = h / 2 + 2;
+
+        if (state.energized) {
+          ctx.save();
+          const flare = ctx.createRadialGradient(cx, cy, 4, cx, cy, 30);
+          flare.addColorStop(0, baseColor);
+          flare.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = flare;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.fillStyle = state.energized ? baseColor : offColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#424242';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText(tag, 4, 12);
+      }
+
+      // 8. Electronic Star-Delta Timer Relay (-KT)
+      else if (type === 'TIMER_STAR_DELTA') {
+        ctx.fillStyle = '#fffde7';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#fbc02d';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(0, 0, w, h);
+
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText(tag, 6, 12);
+
+        // Digital countdown display
+        ctx.fillStyle = '#212121';
+        ctx.fillRect(6, 18, w - 12, 18);
+        ctx.font = 'bold 10px Consolas, monospace';
+        ctx.fillStyle = state.energized ? '#00e676' : '#78909c';
+        const rem = Math.max(0, 4.0 - (state.elapsed || 0)).toFixed(1);
+        ctx.fillText(`T:${rem}s`, 14, 31);
+
+        // Dual Stage LEDs
+        ctx.fillStyle = state.phase === 'STAR' ? '#ffd600' : '#455a64';
+        ctx.fillRect(10, 42, 20, 14);
+        ctx.fillStyle = state.phase === 'STAR' ? '#000' : '#fff';
+        ctx.font = 'bold 8px Arial';
+        ctx.fillText('Y', 17, 52);
+
+        ctx.fillStyle = state.phase === 'DELTA' ? '#00e676' : '#455a64';
+        ctx.fillRect(40, 42, 20, 14);
+        ctx.fillStyle = state.phase === 'DELTA' ? '#000' : '#fff';
+        ctx.fillText('Δ', 47, 52);
+      }
+
+      else {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#000000';
+        ctx.strokeRect(0, 0, w, h);
+        ctx.fillStyle = '#000000';
+        ctx.fillText(tag || type, 4, 16);
+      }
+    }
+
+    // IEC 60617 SCHEMATIC SYMBOL RENDERER
+    function drawSchematicComponent(c) {
+      const { w, h, state, tag, type } = c;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1.5;
+
+      if (type === 'DISYUNTOR_3P') {
+        for (const x of [18, 38, 58]) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h * 0.35);
+          if (state.closed) ctx.lineTo(x, h * 0.65);
+          else ctx.lineTo(x + 10, h * 0.65);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+          ctx.strokeRect(x - 3, h * 0.72, 6, 8);
+        }
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 9px Arial';
+        ctx.fillText(tag, 4, h / 2);
+      }
+      else if (type === 'CONTACTOR_3P') {
+        for (const x of [18, 38, 58]) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h * 0.35);
+          if (state.closed || state.energized) ctx.lineTo(x, h * 0.65);
+          else ctx.lineTo(x + 10, h * 0.65);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 9px Arial';
+        ctx.fillText(tag, 4, h / 2);
+      }
+      else if (type === 'MOTOR_3P' || type === 'MOTOR_6T') {
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2, 28, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.font = 'bold 11px Arial';
+        ctx.fillStyle = '#000';
+        ctx.fillText('M 3~', w / 2 - 14, h / 2 + 4);
+        ctx.fillText(tag, w / 2 - 10, h - 4);
+      }
+      else if (type.startsWith('PILO_')) {
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2, 16, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(w / 2 - 11, h / 2 - 11);
+        ctx.lineTo(w / 2 + 11, h / 2 + 11);
+        ctx.moveTo(w / 2 + 11, h / 2 - 11);
+        ctx.lineTo(w / 2 - 11, h / 2 + 11);
+        ctx.stroke();
+        ctx.font = 'bold 8px Arial';
+        ctx.fillStyle = '#000';
+        ctx.fillText(tag, 4, 12);
+      }
+      else {
+        ctx.strokeRect(0, 0, w, h);
+        ctx.fillStyle = '#000';
+        ctx.fillText(tag || type, 4, 16);
+      }
+    }
+
+    // DIRECT-ON-LINE (DOL) STARTER PRESET (WIRED DIRECTLY TO REAL CONTACTOR TERMINALS!)
+    function loadDOLStarter() {
+      if (components.length > 0 || wires.length > 0) {
+        saveState();
+      }
+      components = [];
+      wires = [];
+      selectedComp = null;
+      selectedWire = null;
+      selectedTerminal = null;
+      updateDeleteButtonUI();
+      document.getElementById('tb-circuit-title').textContent = 'Title: DOL Starter Circuit';
+
+      // Power Section
+      const feed = addComponent('FEED_3P', '3~ 400V', 120, 40);
+      const qf = addComponent('DISYUNTOR_3P', '-QF1', 150, 110);
+      // Real 2D Contactor with built-in Power Poles + Aux NO 13-14 + Coil A1-A2
+      const km1 = addComponent('CONTACTOR_3P', '-KM1', 135, 270);
+      const motor = addComponent('MOTOR_3P', '-M1', 115, 470);
+
+      // Control Section
+      const sbStop = addComponent('PUL_STOP', '-SB1', 540, 180);
+      const sbStart = addComponent('PUL_START', '-SB2', 540, 290);
+      const lampRun = addComponent('PILO_VER', '-HL1', 690, 290);
+      const lampStop = addComponent('PILO_ROJ', '-HL2', 790, 180);
+
+      // Power Wires (Feed -> MCB -> Real Contactor -> Motor)
+      wires.push({ fromId: feed.terminals[0].id, toId: qf.terminals[0].id, color: '#8b0000', wireType: 'PHASE' });
+      wires.push({ fromId: feed.terminals[1].id, toId: qf.terminals[1].id, color: '#8b0000', wireType: 'PHASE' });
+      wires.push({ fromId: feed.terminals[2].id, toId: qf.terminals[2].id, color: '#8b0000', wireType: 'PHASE' });
+
+      wires.push({ fromId: qf.terminals[3].id, toId: km1.terminals[0].id, color: '#8b0000', wireType: 'PHASE' });
+      wires.push({ fromId: qf.terminals[4].id, toId: km1.terminals[1].id, color: '#8b0000', wireType: 'PHASE' });
+      wires.push({ fromId: qf.terminals[5].id, toId: km1.terminals[2].id, color: '#8b0000', wireType: 'PHASE' });
+
+      wires.push({ fromId: km1.terminals[5].id, toId: motor.terminals[0].id, color: '#8b0000', wireType: 'PHASE' });
+      wires.push({ fromId: km1.terminals[6].id, toId: motor.terminals[1].id, color: '#8b0000', wireType: 'PHASE' });
+      wires.push({ fromId: km1.terminals[7].id, toId: motor.terminals[2].id, color: '#8b0000', wireType: 'PHASE' });
+      wires.push({ fromId: feed.terminals[4].id, toId: motor.terminals[3].id, color: '#008000', wireType: 'PE' });
+
+      // Control Wires (Wired DIRECTLY to the Real Contactor's A1, A2, 13, 14 Terminals!)
+      // Phase tap from MCB output pin 2 -> Stop button 11
+      wires.push({ fromId: qf.terminals[3].id, toId: sbStop.terminals[0].id, color: '#8b0000', wireType: 'CONTROL' });
+      // Stop button 12 -> Start button 13
+      wires.push({ fromId: sbStop.terminals[1].id, toId: sbStart.terminals[0].id, color: '#8b0000', wireType: 'CONTROL' });
+      // Also Stop button 12 -> Contactor built-in Aux Latch Terminal 13!
+      wires.push({ fromId: sbStop.terminals[1].id, toId: km1.terminals[3].id, color: '#8b0000', wireType: 'CONTROL' });
+
+      // Start button 14 -> Contactor built-in Coil Terminal A1!
+      wires.push({ fromId: sbStart.terminals[1].id, toId: km1.terminals[4].id, color: '#8b0000', wireType: 'CONTROL' });
+      // Contactor built-in Aux Latch Terminal 14 -> Contactor built-in Coil Terminal A1!
+      wires.push({ fromId: km1.terminals[8].id, toId: km1.terminals[4].id, color: '#8b0000', wireType: 'CONTROL' });
+
+      // Run Lamp X1 connected to Contactor Coil Terminal A1!
+      wires.push({ fromId: km1.terminals[4].id, toId: lampRun.terminals[0].id, color: '#8b0000', wireType: 'CONTROL' });
+
+      // Neutral Return (Feed N -> Contactor built-in Coil Terminal A2 -> Lamp X2)
+      wires.push({ fromId: feed.terminals[3].id, toId: km1.terminals[9].id, color: '#0000d0', wireType: 'NEUTRAL' });
+      wires.push({ fromId: km1.terminals[9].id, toId: lampRun.terminals[1].id, color: '#0000d0', wireType: 'NEUTRAL' });
+
+      document.getElementById('sb-status').textContent = 'DOL Starter loaded. Click Motor Breaker (-QF1) to start!';
+      startSimulation();
+    }
+
+    // FULL STAR-DELTA (Y-Δ) PRESET (MAXIMUM BREATHING SPACE: 1400x900 Sheet, 80-140px component gaps!)
+    function loadStarDeltaStarter() {
+      if (components.length > 0 || wires.length > 0) {
+        saveState();
+      }
+      components = [];
+      wires = [];
+      selectedComp = null;
+      selectedWire = null;
+      selectedTerminal = null;
+      updateDeleteButtonUI();
+      document.getElementById('tb-circuit-title').textContent = 'Title: Star-Delta (Y-Δ) 6-Terminal Starter (Spacious View)';
+
+      // 1. Power Supply & MCB
+      const feed = addComponent('FEED_3P', '3~ 400V Mains', 80, 50);
+      const qf = addComponent('DISYUNTOR_3P', '-QF1', 80, 140);
+
+      // 2. Real Physical 2D Contactors (80px gap between contactors, 130px below breaker!)
+      const km1 = addComponent('CONTACTOR_3P', '-KM1 (Main)', 80, 380);
+      const km3 = addComponent('CONTACTOR_3P', '-KM3 (Delta)', 280, 380);
+      const km2 = addComponent('CONTACTOR_3P', '-KM2 (Star)', 480, 380);
+
+      // 3. Real 6-Terminal Induction Motor (145px below contactors, huge open breathing space!)
+      const motor = addComponent('MOTOR_6T', '-M1 (U1 V1 W1 W2 U2 V2)', 140, 650);
+
+      // 4. Control Components (Spacious right-hand columns with 100-130px gaps!)
+      const sbStop = addComponent('PUL_STOP', '-SB1 [STOP]', 700, 160);
+      const sbStart = addComponent('PUL_START', '-SB2 [START]', 700, 340);
+      const timer = addComponent('TIMER_STAR_DELTA', '-KT1', 880, 160);
+      const lampStar = addComponent('PILO_AMA', '-HL3 [Star Start]', 1060, 160);
+      const lampRun = addComponent('PILO_VER', '-HL1 [Delta Run]', 1060, 340);
+
+      // Power Wires (Feed -> Breaker QF1)
+      wires.push({ fromId: feed.terminals[0].id, toId: qf.terminals[0].id, color: '#c62828', wireType: 'PHASE', lane: 0 });
+      wires.push({ fromId: feed.terminals[1].id, toId: qf.terminals[1].id, color: '#ef6c00', wireType: 'PHASE', lane: 1 });
+      wires.push({ fromId: feed.terminals[2].id, toId: qf.terminals[2].id, color: '#1565c0', wireType: 'PHASE', lane: 2 });
+
+      // Breaker QF1 -> KM1 Main Inputs (1, 3, 5) - Straight vertical drop!
+      wires.push({ fromId: qf.terminals[3].id, toId: km1.terminals[0].id, color: '#c62828', wireType: 'PHASE', lane: 0 });
+      wires.push({ fromId: qf.terminals[4].id, toId: km1.terminals[1].id, color: '#ef6c00', wireType: 'PHASE', lane: 1 });
+      wires.push({ fromId: qf.terminals[5].id, toId: km1.terminals[2].id, color: '#1565c0', wireType: 'PHASE', lane: 2 });
+
+      // Breaker QF1 -> KM3 Delta Inputs (1, 3, 5) - High 130px open corridor!
+      wires.push({ fromId: qf.terminals[3].id, toId: km3.terminals[0].id, color: '#c62828', wireType: 'PHASE', lane: 0 });
+      wires.push({ fromId: qf.terminals[4].id, toId: km3.terminals[1].id, color: '#ef6c00', wireType: 'PHASE', lane: 1 });
+      wires.push({ fromId: qf.terminals[5].id, toId: km3.terminals[2].id, color: '#1565c0', wireType: 'PHASE', lane: 2 });
+
+      // KM1 Main Outputs (2, 4, 6) -> Motor Line 1 Terminals (U1, V1, W1)
+      wires.push({ fromId: km1.terminals[5].id, toId: motor.terminals[0].id, color: '#c62828', wireType: 'PHASE', lane: 0 });
+      wires.push({ fromId: km1.terminals[6].id, toId: motor.terminals[1].id, color: '#ef6c00', wireType: 'PHASE', lane: 1 });
+      wires.push({ fromId: km1.terminals[7].id, toId: motor.terminals[2].id, color: '#1565c0', wireType: 'PHASE', lane: 2 });
+
+      // Motor Line 2 Terminals (W2, U2, V2) -> KM3 Delta Outputs (2, 4, 6)
+      wires.push({ fromId: motor.terminals[3].id, toId: km3.terminals[5].id, color: '#ad1457', wireType: 'PHASE', lane: 0 });
+      wires.push({ fromId: motor.terminals[4].id, toId: km3.terminals[6].id, color: '#f57f17', wireType: 'PHASE', lane: 1 });
+      wires.push({ fromId: motor.terminals[5].id, toId: km3.terminals[7].id, color: '#0277bd', wireType: 'PHASE', lane: 2 });
+
+      // KM3 Delta Outputs (2, 4, 6) -> KM2 Star Outputs (2, 4, 6) - Wide under-contactor duct
+      wires.push({ fromId: km3.terminals[5].id, toId: km2.terminals[5].id, color: '#ad1457', wireType: 'PHASE', lane: 0 });
+      wires.push({ fromId: km3.terminals[6].id, toId: km2.terminals[6].id, color: '#f57f17', wireType: 'PHASE', lane: 1 });
+      wires.push({ fromId: km3.terminals[7].id, toId: km2.terminals[7].id, color: '#0277bd', wireType: 'PHASE', lane: 2 });
+
+      // Star Contactor -KM2 Neutral Star Point Bridge (Pins 1-3 and 3-5 jumpered together)
+      wires.push({ fromId: km2.terminals[0].id, toId: km2.terminals[1].id, color: '#ffd600', wireType: 'PHASE', lane: 0 });
+      wires.push({ fromId: km2.terminals[1].id, toId: km2.terminals[2].id, color: '#ffd600', wireType: 'PHASE', lane: 1 });
+
+      // PE Ground Wire
+      wires.push({ fromId: feed.terminals[4].id, toId: motor.terminals[6].id, color: '#008000', wireType: 'PE', lane: 3 });
+
+      // CONTROL CIRCUIT: Wired DIRECTLY to Real Contactor Terminals A1, A2, 13, 14!
+      // Phase tap -> Stop button 11
+      wires.push({ fromId: qf.terminals[3].id, toId: sbStop.terminals[0].id, color: '#d84315', wireType: 'CONTROL', lane: 1 });
+      // Stop button 12 -> Start button 13 (Straight vertical drop!)
+      wires.push({ fromId: sbStop.terminals[1].id, toId: sbStart.terminals[0].id, color: '#d84315', wireType: 'CONTROL', lane: 0 });
+      // Stop button 12 -> Main Contactor -KM1 built-in Aux Latch 13!
+      wires.push({ fromId: sbStop.terminals[1].id, toId: km1.terminals[3].id, color: '#d84315', wireType: 'CONTROL', lane: 2 });
+
+      // Start button 14 -> Main Contactor -KM1 built-in Coil A1!
+      wires.push({ fromId: sbStart.terminals[1].id, toId: km1.terminals[4].id, color: '#d84315', wireType: 'CONTROL', lane: 1 });
+      // Main Contactor -KM1 built-in Aux Latch 14 -> Terminal A1!
+      wires.push({ fromId: km1.terminals[8].id, toId: km1.terminals[4].id, color: '#d84315', wireType: 'CONTROL', lane: 0 });
+
+      // Start button 14 -> Timer -KT1 Coil A1 & Common 15!
+      wires.push({ fromId: km1.terminals[4].id, toId: timer.terminals[0].id, color: '#d84315', wireType: 'CONTROL', lane: 2 });
+      wires.push({ fromId: timer.terminals[0].id, toId: timer.terminals[1].id, color: '#d84315', wireType: 'CONTROL', lane: 0 });
+
+      // Timer 18 (Star Output) -> Star Contactor -KM2 built-in Coil A1!
+      wires.push({ fromId: timer.terminals[3].id, toId: km2.terminals[4].id, color: '#d84315', wireType: 'CONTROL', lane: 1 });
+      // Also to Yellow Star Lamp X1!
+      wires.push({ fromId: timer.terminals[3].id, toId: lampStar.terminals[0].id, color: '#d84315', wireType: 'CONTROL', lane: 2 });
+
+      // Timer 28 (Delta Output) -> Delta Contactor -KM3 built-in Coil A1!
+      wires.push({ fromId: timer.terminals[4].id, toId: km3.terminals[4].id, color: '#d84315', wireType: 'CONTROL', lane: 2 });
+      // Also to Green Delta Lamp X1!
+      wires.push({ fromId: timer.terminals[4].id, toId: lampRun.terminals[0].id, color: '#d84315', wireType: 'CONTROL', lane: 3 });
+
+      // Neutral Return Bus (Directly to Real Contactor A2 Terminals!)
+      wires.push({ fromId: feed.terminals[3].id, toId: km1.terminals[9].id, color: '#0000d0', wireType: 'NEUTRAL', lane: 3 });
+      wires.push({ fromId: km1.terminals[9].id, toId: km3.terminals[9].id, color: '#0000d0', wireType: 'NEUTRAL', lane: 3 });
+      wires.push({ fromId: km3.terminals[9].id, toId: km2.terminals[9].id, color: '#0000d0', wireType: 'NEUTRAL', lane: 3 });
+      wires.push({ fromId: km2.terminals[9].id, toId: timer.terminals[2].id, color: '#0000d0', wireType: 'NEUTRAL', lane: 3 });
+      wires.push({ fromId: timer.terminals[2].id, toId: lampRun.terminals[1].id, color: '#0000d0', wireType: 'NEUTRAL', lane: 3 });
+      wires.push({ fromId: lampRun.terminals[1].id, toId: lampStar.terminals[1].id, color: '#0000d0', wireType: 'NEUTRAL', lane: 1 });
+
+      document.getElementById('sb-status').textContent = 'Star-Delta (Y-Δ) Starter loaded. Click Motor Breaker (-QF1) to start!';
+      startSimulation();
+    }
+
+    function clearSheet() {
+      if (components.length > 0 || wires.length > 0) {
+        saveState();
+      }
+      components = [];
+      wires = [];
+      selectedTerminal = null;
+      selectedComp = null;
+      selectedWire = null;
+      updateDeleteButtonUI();
+      document.getElementById('sb-status').textContent = 'Sheet cleared. Press Ctrl+Z to Undo.';
+      render();
+    }
+
+    function setVisualMode(mode) {
+      visualMode = mode;
+      document.getElementById('sb-mode').textContent = mode === '2D' ? 'Mode: 2D Panel View' : 'Mode: IEC Schematic';
+      document.getElementById('btn-mode-2d').classList.toggle('active', mode === '2D');
+      document.getElementById('btn-mode-sym').classList.toggle('active', mode === 'SCHEMATIC');
+      render();
+    }
+
+    // Simulation Handlers
+    function startSimulation() {
+      initAudio();
+      isSimulating = true;
+      isPaused = false;
+      document.getElementById('sb-sim').textContent = 'Simulation: PLAY';
+      document.getElementById('sb-sim').style.color = '#008000';
+      document.getElementById('sb-sim').style.fontWeight = 'bold';
+      document.getElementById('sb-status').textContent = 'SIMULATION RUNNING: Follow the Live Explainer Banner on top!';
+
+      if (!simInterval) {
+        simInterval = setInterval(() => {
+          stepSolver();
+          render();
+        }, 40);
+      }
+      stepSolver();
+      render();
+    }
+
+    document.getElementById('btn-run').addEventListener('click', startSimulation);
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      if (!isSimulating) return;
+      isPaused = !isPaused;
+      document.getElementById('sb-sim').textContent = isPaused ? 'Simulation: PAUSED' : 'Simulation: PLAY';
+      document.getElementById('sb-sim').style.color = isPaused ? '#ff8f00' : '#008000';
+      document.getElementById('sb-status').textContent = isPaused ? 'Simulation paused.' : 'Simulation resumed.';
+      render();
+    });
+
+    document.getElementById('btn-stop').addEventListener('click', () => {
+      isSimulating = false;
+      isPaused = false;
+      document.getElementById('sb-sim').textContent = 'Simulation: STOP';
+      document.getElementById('sb-sim').style.color = '#000';
+      document.getElementById('sb-sim').style.fontWeight = 'normal';
+      document.getElementById('sb-status').textContent = 'Ready (Edit Mode)';
+      if (simInterval) {
+        clearInterval(simInterval);
+        simInterval = null;
+      }
+      resetCircuitStates();
+      updateEducationalExplainerBanner();
+      render();
+    });
+
+    function exportCad() {
+      let cadText = `CADe_SIMU*1*0*1*1*0*0*0*0*100*100*0.0000*1*1*297*210*1*1*100$$$\n`;
+      components.forEach((c, idx) => {
+        cadText += `*100*${idx}#${c.tag}#${c.type}*${c.x}*${c.y}*0*0*0*0*0*0*0*0*0*0*0*0*0*0*0*0*0*0*0*0#\n`;
+      });
+      cadText += `$$$WIRES\n`;
+      wires.forEach(w => {
+        cadText += `WIRE*${w.fromId}*${w.toId}*${w.color}*${w.wireType}\n`;
+      });
+      const blob = new Blob([cadText], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Diagram1.cad';
+      a.click();
+      document.getElementById('sb-status').textContent = 'Diagram saved as Diagram1.cad';
+    }
+
+    document.getElementById('file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const content = event.target.result;
+          const lines = content.split('\n');
+          clearSheet();
+
+          let readingWires = false;
+          for (const line of lines) {
+            if (line.includes('$$$WIRES')) { readingWires = true; continue; }
+            if (readingWires && line.startsWith('WIRE*')) {
+              const parts = line.split('*');
+              wires.push({ fromId: parts[1], toId: parts[2], color: parts[3], wireType: parts[4] || 'PHASE' });
+            } else if (line.startsWith('*100*')) {
+              const parts = line.split('#');
+              const tag = parts[1];
+              const type = parts[2];
+              const coords = parts[3].split('*');
+              const x = parseInt(coords[1]) || 100;
+              const y = parseInt(coords[2]) || 100;
+              addComponent(type, tag, x, y);
+            }
+          }
+          document.getElementById('sb-status').textContent = `Loaded ${file.name} successfully.`;
+          render();
+        } catch (err) {
+          alert('Error loading .cad file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // ==========================================
+    // STAR-DELTA CONNECTION PRACTICE WORKBENCH
+    // ==========================================
+    let activeHint = null;
+    let currentDiagramZoom = 1.0;
+
+    // Star-Delta Master Checklist Definition (29 Connections)
+    const starDeltaChecklistDef = [
+      { group: '⚡ Phase 1: Mains & Main Contactor (-KM3)', items: [
+        { id: 'feed_L1_qf', fromRole: 'feed', fromPin: 'L1', toRole: 'qf', toPin: '1', label: 'Mains L1 ➔ -F1 Breaker in [1]' },
+        { id: 'feed_L2_qf', fromRole: 'feed', fromPin: 'L2', toRole: 'qf', toPin: '3', label: 'Mains L2 ➔ -F1 Breaker in [3]' },
+        { id: 'feed_L3_qf', fromRole: 'feed', fromPin: 'L3', toRole: 'qf', toPin: '5', label: 'Mains L3 ➔ -F1 Breaker in [5]' },
+        { id: 'qf_kmMain_1', fromRole: 'qf', fromPin: '2', toRole: 'kmMain', toPin: '1', label: '-F1 Breaker out [2] ➔ -KM3 (Main) in [1]' },
+        { id: 'qf_kmMain_3', fromRole: 'qf', fromPin: '4', toRole: 'kmMain', toPin: '3', label: '-F1 Breaker out [4] ➔ -KM3 (Main) in [3]' },
+        { id: 'qf_kmMain_5', fromRole: 'qf', fromPin: '6', toRole: 'kmMain', toPin: '5', label: '-F1 Breaker out [6] ➔ -KM3 (Main) in [5]' },
+        { id: 'kmMain_mot_U1', fromRole: 'kmMain', fromPin: '2', toRole: 'motor', toPin: 'U1', label: '-KM3 (Main) out [2] ➔ Motor [U1]' },
+        { id: 'kmMain_mot_V1', fromRole: 'kmMain', fromPin: '4', toRole: 'motor', toPin: 'V1', label: '-KM3 (Main) out [4] ➔ Motor [V1]' },
+        { id: 'kmMain_mot_W1', fromRole: 'kmMain', fromPin: '6', toRole: 'motor', toPin: 'W1', label: '-KM3 (Main) out [6] ➔ Motor [W1]' },
+      ]},
+      { group: '🔺 Phase 2: Delta (-KM2) & Star (-KM1) Connections', items: [
+        { id: 'qf_kmDelta_1', fromRole: 'qf', fromPin: '2', toRole: 'kmDelta', toPin: '1', altFromRole: 'feed', altFromPin: 'L1', label: 'Phase L1 Tap ➔ -KM2 (Delta) in [1]' },
+        { id: 'qf_kmDelta_3', fromRole: 'qf', fromPin: '4', toRole: 'kmDelta', toPin: '3', altFromRole: 'feed', altFromPin: 'L2', label: 'Phase L2 Tap ➔ -KM2 (Delta) in [3]' },
+        { id: 'qf_kmDelta_5', fromRole: 'qf', fromPin: '6', toRole: 'kmDelta', toPin: '5', altFromRole: 'feed', altFromPin: 'L3', label: 'Phase L3 Tap ➔ -KM2 (Delta) in [5]' },
+        { id: 'kmDelta_mot_W2', fromRole: 'kmDelta', fromPin: '2', toRole: 'motor', toPin: 'W2', label: '-KM2 (Delta) out [2] ➔ Motor [W2]' },
+        { id: 'kmDelta_mot_U2', fromRole: 'kmDelta', fromPin: '4', toRole: 'motor', toPin: 'U2', label: '-KM2 (Delta) out [4] ➔ Motor [U2]' },
+        { id: 'kmDelta_mot_V2', fromRole: 'kmDelta', fromPin: '6', toRole: 'motor', toPin: 'V2', label: '-KM2 (Delta) out [6] ➔ Motor [V2]' },
+        { id: 'kmStar_mot_W2', fromRole: 'kmStar', fromPin: '2', toRole: 'motor', toPin: 'W2', altToRole: 'kmDelta', altToPin: '2', label: '-KM1 (Star) out [2] ➔ Motor [W2]' },
+        { id: 'kmStar_mot_U2', fromRole: 'kmStar', fromPin: '4', toRole: 'motor', toPin: 'U2', altToRole: 'kmDelta', altToPin: '4', label: '-KM1 (Star) out [4] ➔ Motor [U2]' },
+        { id: 'kmStar_mot_V2', fromRole: 'kmStar', fromPin: '6', toRole: 'motor', toPin: 'V2', altToRole: 'kmDelta', altToPin: '6', label: '-KM1 (Star) out [6] ➔ Motor [V2]' },
+        { id: 'kmStar_bridge_1', fromRole: 'kmStar', fromPin: '1', toRole: 'kmStar', toPin: '3', label: '★ Star Bridge: Short -KM1 pins [1 ➔ 3]' },
+        { id: 'kmStar_bridge_2', fromRole: 'kmStar', fromPin: '3', toRole: 'kmStar', toPin: '5', label: '★ Star Bridge: Short -KM1 pins [3 ➔ 5]' },
+      ]},
+      { group: '🎛️ Phase 3: Control Buttons & Contactor Latch', items: [
+        { id: 'ctrl_phase_stop', fromRole: 'qf', fromPin: '2', toRole: 'sbStop', toPin: '11', altFromRole: 'feed', altFromPin: 'L1', label: 'Phase Tap (L1) ➔ Stop Button [11]' },
+        { id: 'stop_start', fromRole: 'sbStop', fromPin: '12', toRole: 'sbStart', toPin: '13', label: 'Stop Button [12] ➔ Start Button [13]' },
+        { id: 'stop_kmMain_13', fromRole: 'sbStop', fromPin: '12', toRole: 'kmMain', toPin: '13', label: 'Stop [12] ➔ -KM3 Aux Latch NO [13]' },
+        { id: 'start_kmMain_A1', fromRole: 'sbStart', fromPin: '14', toRole: 'kmMain', toPin: 'A1', label: 'Start Button [14] ➔ -KM3 Coil [A1]' },
+        { id: 'kmMain_14_A1', fromRole: 'kmMain', fromPin: '14', toRole: 'kmMain', toPin: 'A1', label: '-KM3 Aux Latch NO [14] ➔ Coil [A1]' },
+      ]},
+      { group: '⏱️ Phase 4: Timer (K1T), Coils & Neutral Bus', items: [
+        { id: 'kmMain_A1_timer', fromRole: 'kmMain', fromPin: 'A1', toRole: 'timer', toPin: 'A1', label: '-KM3 Coil [A1] ➔ K1T Timer Coil [A1]' },
+        { id: 'timer_18_kmStar_A1', fromRole: 'timer', fromPin: '18(Y)', toRole: 'kmStar', toPin: 'A1', label: 'Timer Star Output [18(Y)] ➔ -KM1 (Star) Coil [A1]' },
+        { id: 'timer_28_kmDelta_A1', fromRole: 'timer', fromPin: '28(Δ)', toRole: 'kmDelta', toPin: 'A1', label: 'Timer Delta Output [28(Δ)] ➔ -KM2 (Delta) Coil [A1]' },
+        { id: 'neutral_kmMain_A2', fromRole: 'feed', fromPin: 'N', toRole: 'kmMain', toPin: 'A2', label: 'Neutral Bus: Feed [N] ➔ -KM3 Coil [A2]' },
+        { id: 'neutral_bus_kmDelta', fromRole: 'kmMain', fromPin: 'A2', toRole: 'kmDelta', toPin: 'A2', label: 'Neutral Bus: -KM3 [A2] ➔ -KM2 (Delta) [A2]' },
+        { id: 'neutral_bus_kmStar', fromRole: 'kmDelta', fromPin: 'A2', toRole: 'kmStar', toPin: 'A2', label: 'Neutral Bus: -KM2 [A2] ➔ -KM1 (Star) [A2]' },
+        { id: 'neutral_bus_timer', fromRole: 'kmStar', fromPin: 'A2', toRole: 'timer', toPin: 'A2', label: 'Neutral Bus: -KM1 [A2] ➔ K1T Timer [A2]' },
+      ]}
+    ];
+
+    function getComponentByRole(role) {
+      const contactors = components.filter(c => c.type === 'CONTACTOR_3P');
+      if (role === 'feed') return components.find(c => c.type === 'FEED_3P');
+      if (role === 'qf') return components.find(c => c.type === 'DISYUNTOR_3P');
+      if (role === 'kmMain') return contactors.find(c => c.tag.includes('Main')) || contactors.find(c => c.tag === '-KM3' || c.tag === '-KM1');
+      if (role === 'kmDelta') return contactors.find(c => c.tag.includes('Delta')) || contactors.find(c => c.tag === '-KM2' || c.tag === '-KM3');
+      if (role === 'kmStar') return contactors.find(c => c.tag.includes('Star')) || contactors.find(c => c.tag === '-KM1' || c.tag === '-KM2');
+      if (role === 'motor') return components.find(c => c.type === 'MOTOR_6T');
+      if (role === 'sbStop') return components.find(c => c.type === 'PUL_STOP');
+      if (role === 'sbStart') return components.find(c => c.type === 'PUL_START');
+      if (role === 'timer') return components.find(c => c.type === 'TIMER_STAR_DELTA');
+      if (role === 'lampStar') return components.find(c => c.type === 'PILO_AMA');
+      if (role === 'lampRun') return components.find(c => c.type === 'PILO_VER');
+      return null;
+    }
+
+    function getTerminalId(compRole, pinName) {
+      const comp = getComponentByRole(compRole);
+      if (!comp) return null;
+      const term = comp.terminals.find(t => t.name === pinName);
+      return term ? term.id : null;
+    }
+
+    function arePinsConnected(t1, t2) {
+      if (!t1 || !t2) return false;
+      if (t1 === t2) return true;
+      const direct = wires.some(w => (w.fromId === t1 && w.toId === t2) || (w.fromId === t2 && w.toId === t1));
+      if (direct) return true;
+      const adj = new Map();
+      for (const w of wires) {
+        if (!adj.has(w.fromId)) adj.set(w.fromId, []);
+        if (!adj.has(w.toId)) adj.set(w.toId, []);
+        adj.get(w.fromId).push(w.toId);
+        adj.get(w.toId).push(w.fromId);
+      }
+      const visited = new Set([t1]);
+      const queue = [t1];
+      while (queue.length > 0) {
+        const cur = queue.shift();
+        if (cur === t2) return true;
+        for (const next of (adj.get(cur) || [])) {
+          if (!visited.has(next)) {
+            visited.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      return false;
+    }
+
+    function findTerminalPosById(termId) {
+      for (const c of components) {
+        for (const t of c.terminals) {
+          if (t.id === termId) {
+            return { x: c.x + t.rx, y: c.y + t.ry, comp: c, term: t };
+          }
+        }
+      }
+      return null;
+    }
+
+    function renderWiringHintBeacon() {
+      if (!activeHint) return;
+      const p1 = findTerminalPosById(activeHint.fromId);
+      const p2 = findTerminalPosById(activeHint.toId);
+      if (!p1 || !p2) return;
+
+      const pulse = ((animTick * 2) % 40) / 40;
+      const r = 5 + pulse * 18;
+      const alpha = Math.max(0, 1 - pulse);
+
+      ctx.save();
+      // Draw ping ring at p1
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 214, 0, ${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd600';
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Draw ping ring at p2
+      ctx.beginPath();
+      ctx.arc(p2.x, p2.y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 214, 0, ${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(p2.x, p2.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd600';
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Dashed guide beam between p1 and p2
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = 'rgba(255, 214, 0, 0.75)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function updatePracticeChecklist() {
+      const container = document.getElementById('checklist-items');
+      if (!container) return;
+
+      let total = 0;
+      let doneCount = 0;
+      let html = '';
+
+      for (const group of starDeltaChecklistDef) {
+        let groupDone = 0;
+        let groupHtml = `<div class="cl-group-title"><span>${group.group}</span>`;
+        let itemsHtml = '';
+
+        for (const item of group.items) {
+          total++;
+          const t1 = getTerminalId(item.fromRole, item.fromPin);
+          const t2 = getTerminalId(item.toRole, item.toPin);
+          let connected = arePinsConnected(t1, t2);
+
+          if (!connected && item.altFromRole && item.altFromPin) {
+            const alt1 = getTerminalId(item.altFromRole, item.altFromPin);
+            connected = arePinsConnected(alt1, t2);
+          }
+          if (!connected && item.altToRole && item.altToPin) {
+            const alt2 = getTerminalId(item.altToRole, item.altToPin);
+            connected = arePinsConnected(t1, alt2);
+          }
+
+          item.done = connected;
+          if (connected) {
+            doneCount++;
+            groupDone++;
+          }
+
+          itemsHtml += `
+            <div class="cl-item ${connected ? 'done' : 'pending'}" onclick="setHintForItem('${item.id}')" title="Click to highlight these terminal pins">
+              <span class="cl-icon">${connected ? '✅' : '⭕'}</span>
+              <span style="${connected ? 'text-decoration:line-through; opacity:0.8;' : ''}">${item.label}</span>
+            </div>
+          `;
+        }
+
+        groupHtml += `<span style="font-size:10px; font-weight:normal;">${groupDone}/${group.items.length}</span></div>`;
+        html += groupHtml + itemsHtml;
+      }
+
+      container.innerHTML = html;
+      const percent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+      const countEl = document.getElementById('wire-checklist-count');
+      if (countEl) countEl.textContent = `${doneCount}/${total}`;
+
+      const textEl = document.getElementById('cl-count-text');
+      if (textEl) textEl.textContent = `${doneCount} / ${total} Connections (${percent}%)`;
+
+      const pctEl = document.getElementById('cl-progress-percent');
+      if (pctEl) pctEl.textContent = `${percent}%`;
+
+      const barEl = document.getElementById('cl-progress-bar');
+      if (barEl) barEl.style.width = `${percent}%`;
+
+      if (doneCount === total && total > 0) {
+        document.getElementById('sb-status').textContent = '🎉 EXCELLENT! 100% WIRING COMPLETE! Click ▶ Simulation to run!';
+      }
+      return { doneCount, total, percent };
+    }
+
+    function setHintForItem(itemId) {
+      for (const group of starDeltaChecklistDef) {
+        const found = group.items.find(i => i.id === itemId);
+        if (found) {
+          const t1 = getTerminalId(found.fromRole, found.fromPin);
+          const t2 = getTerminalId(found.toRole, found.toPin);
+          if (t1 && t2) {
+            activeHint = { fromId: t1, toId: t2, desc: found.label };
+            document.getElementById('sb-status').textContent = '💡 Hint: ' + found.label;
+            render();
+          }
+          break;
+        }
+      }
+    }
+
+    function giveNextWireHint() {
+      for (const group of starDeltaChecklistDef) {
+        for (const item of group.items) {
+          if (!item.done) {
+            const t1 = getTerminalId(item.fromRole, item.fromPin);
+            const t2 = getTerminalId(item.toRole, item.toPin);
+            if (t1 && t2) {
+              activeHint = { fromId: t1, toId: t2, desc: item.label };
+              document.getElementById('sb-status').textContent = '💡 Hint: ' + item.label;
+              playSound('CLICK');
+              render();
+              return;
+            }
+          }
+        }
+      }
+      document.getElementById('sb-status').textContent = '🎉 All wires are already connected! Press ▶ Simulation to test!';
+    }
+
+    function clearOnlyWires() {
+      if (wires.length > 0) saveState();
+      wires = [];
+      selectedTerminal = null;
+      selectedWire = null;
+      activeHint = null;
+      updatePracticeChecklist();
+      document.getElementById('sb-status').textContent = 'All wires cleared. Practice mode ready!';
+      render();
+    }
+
+    function toggleReferenceDiagram(forceState) {
+      const panel = document.getElementById('diagram-reference-panel');
+      if (!panel) return;
+      const isVisible = panel.style.display === 'flex';
+      const show = (forceState !== undefined) ? forceState : !isVisible;
+      panel.style.display = show ? 'flex' : 'none';
+      const btn = document.getElementById('btn-toggle-diagram');
+      if (btn) btn.classList.toggle('active', show);
+    }
+
+    function zoomDiagram(factor) {
+      currentDiagramZoom = Math.max(0.6, Math.min(3.0, currentDiagramZoom * factor));
+      const img = document.getElementById('ref-diagram-img');
+      if (img) img.style.transform = `scale(${currentDiagramZoom})`;
+    }
+
+    function resetDiagramZoom() {
+      currentDiagramZoom = 1.0;
+      const img = document.getElementById('ref-diagram-img');
+      if (img) img.style.transform = 'scale(1.0)';
+    }
+
+    function togglePracticeChecklist(forceState) {
+      const panel = document.getElementById('practice-checklist-panel');
+      if (!panel) return;
+      const isVisible = panel.style.display === 'flex';
+      const show = (forceState !== undefined) ? forceState : !isVisible;
+      panel.style.display = show ? 'flex' : 'none';
+      const btn = document.getElementById('btn-toggle-checklist');
+      if (btn) btn.classList.toggle('active', show);
+      if (show) updatePracticeChecklist();
+    }
+
+    function makeDraggable(panel, handle) {
+      let isDown = false;
+      let startX, startY, origX, origY;
+      handle.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = panel.getBoundingClientRect();
+        origX = rect.left;
+        origY = rect.top;
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+      function onMove(e) {
+        if (!isDown) return;
+        panel.style.left = (origX + (e.clientX - startX)) + 'px';
+        panel.style.top = (origY + (e.clientY - startY)) + 'px';
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+      }
+      function onUp() {
+        isDown = false;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+    }
+
+    function loadStarDeltaPractice() {
+      if (components.length > 0 || wires.length > 0) {
+        saveState();
+      }
+      isSimulating = false;
+      if (simInterval) { clearInterval(simInterval); simInterval = null; }
+      resetCircuitStates();
+
+      components = [];
+      wires = [];
+      selectedComp = null;
+      selectedWire = null;
+      selectedTerminal = null;
+      activeHint = null;
+      updateDeleteButtonUI();
+      document.getElementById('tb-circuit-title').textContent = 'Title: Star-Delta (Y-Δ) Connection Practice Lab';
+
+      // 1. Power Supply & Overload / Breaker (-F1)
+      const feed = addComponent('FEED_3P', 'Mains P.S. (3~ 400V)', 80, 50);
+      const qf = addComponent('DISYUNTOR_3P', '-F1 (Overload Breaker)', 80, 150);
+
+      // 2. The 3 Contactors (Matching Diagram: KM3 Main, KM2 Delta, KM1 Star!)
+      const kmMain = addComponent('CONTACTOR_3P', '-KM3 (Main)', 80, 380);
+      const kmDelta = addComponent('CONTACTOR_3P', '-KM2 (Delta)', 290, 380);
+      const kmStar = addComponent('CONTACTOR_3P', '-KM1 (Star)', 500, 380);
+
+      // 3. 6-Terminal Induction Motor (-M)
+      const motor = addComponent('MOTOR_6T', '-M (U1 V1 W1 W2 U2 V2)', 150, 650);
+
+      // 4. Control Components (Right-hand columns)
+      const sbStop = addComponent('PUL_STOP', 'Stop (NC -SB1)', 720, 160);
+      const sbStart = addComponent('PUL_START', 'Start (NO -SB2)', 720, 340);
+      const timer = addComponent('TIMER_STAR_DELTA', 'K1T (Timer)', 900, 160);
+      const lampStar = addComponent('PILO_AMA', '-HL3 (Star)', 1080, 160);
+      const lampRun = addComponent('PILO_VER', '-HL1 (Delta Run)', 1080, 340);
+
+      // Set default wire tool to Phase L1 (Red)
+      setWireType('PHASE_L1');
+
+      // Open Reference Diagram and Checklist
+      toggleReferenceDiagram(true);
+      togglePracticeChecklist(true);
+      updatePracticeChecklist();
+
+      document.getElementById('sb-status').textContent = '🎯 Star-Delta Practice Mode: Connect components using the Reference Diagram on the right!';
+      document.getElementById('flow-badge').className = 'flow-badge ready';
+      document.getElementById('flow-badge').textContent = 'PRACTICE MODE: WIRING LAB';
+      document.getElementById('flow-desc').textContent = 'All components are placed with 0 wires! Select wire colors (L1 Red, L2 Yellow, L3 Blue, Neutral) and click terminal pins to connect according to the diagram.';
+
+      render();
+    }
+
+    // Initialize Draggable Floating Panels
+    if (typeof window !== 'undefined') {
+      window.addEventListener('DOMContentLoaded', () => {
+        const diagPanel = document.getElementById('diagram-reference-panel');
+        const diagHandle = document.getElementById('diagram-drag-handle');
+        if (diagPanel && diagHandle) makeDraggable(diagPanel, diagHandle);
+
+        const clPanel = document.getElementById('practice-checklist-panel');
+        const clHandle = document.getElementById('checklist-drag-handle');
+        if (clPanel && clHandle) makeDraggable(clPanel, clHandle);
+      });
+    }
+
+    // Default Initialization: Load Star-Delta Practice Lab!
+    showCategory('POWER');
+    loadStarDeltaPractice();
+  </script>
+</body>
+</html>
