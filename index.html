@@ -301,13 +301,13 @@
   <!-- Menu Bar -->
   <div class="menu-bar">
     <div class="menu-item" onclick="clearSheet()">File</div>
-    <div class="menu-item" onclick="deleteSelected()">Edit</div>
+    <div class="menu-item" onclick="undo()" title="Undo (Ctrl+Z)">Undo</div>
+    <div class="menu-item" onclick="redo()" title="Redo (Ctrl+Y)">Redo</div>
+    <div class="menu-item" onclick="deleteSelected()" title="Delete Selected (Delete key)">Delete</div>
     <div class="menu-item" onclick="setVisualMode(visualMode === '2D' ? 'SCHEMATIC' : '2D')">Draw</div>
-    <div class="menu-item">Mode</div>
-    <div class="menu-item">Bars</div>
-    <div class="menu-item">View</div>
-    <div class="menu-item">Window</div>
-    <div class="menu-item" onclick="alert('CADe_SIMU v4.2 Pro [English Edition]\nEnhanced with Full 2D Integrated Contactors (A1, A2, 13, 14 directly on contactors), 6-Terminal Star-Delta Engine, and Anti-Overlap Routing.')">Help</div>
+    <div class="menu-item" onclick="setToolMode('POINTER')">Pointer</div>
+    <div class="menu-item" onclick="setWireType('PHASE')">Wire</div>
+    <div class="menu-item" onclick="alert('CADe_SIMU v4.2 Pro [English Edition]\nEnhanced with Full 2D Integrated Contactors, Undo/Redo (Ctrl+Z/Ctrl+Y), Component Deletion, and Star-Delta Engine.')">Help</div>
   </div>
 
   <!-- Standard Toolbar (Row 1) -->
@@ -323,7 +323,9 @@
 
     <!-- Edit Actions -->
     <div class="tb-group">
-      <button class="tb-btn delete" id="btn-delete" title="Delete Selected (Delete key)" onclick="deleteSelected()">🗑️ Delete</button>
+      <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()" disabled style="opacity:0.5; cursor:not-allowed;">↩️ Undo</button>
+      <button class="tb-btn" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()" disabled style="opacity:0.5; cursor:not-allowed;">↪️ Redo</button>
+      <button class="tb-btn delete" id="btn-delete" title="Delete Selected Component/Wire (Delete key)" onclick="deleteSelected()">🗑️ Delete</button>
       <button class="tb-btn" title="Reset Circuit States" onclick="resetCircuitStates()">🔄 Reset</button>
       <button class="tb-btn sound" id="btn-sound" title="Toggle Sound" onclick="toggleSound()">🔊 Sound: ON</button>
     </div>
@@ -540,6 +542,12 @@
     }
 
     // State Variables
+    let components = [];
+    let wires = [];
+    let hoveredWire = null;
+    let simInterval = null;
+    let animTick = 0;
+
     let visualMode = '2D';
     let isSimulating = false;
     let isPaused = false;
@@ -551,9 +559,168 @@
     let selectedComponentType = null;
     let selectedTerminal = null;
     let selectedComp = null;
+    let selectedWire = null;
     let mousePos = { x: 0, y: 0 };
 
     let isDragging = false;
+    let draggedComp = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragStartSnapshot = null;
+
+    // Undo / Redo History Stacks
+    const undoStack = [];
+    const redoStack = [];
+    const MAX_HISTORY = 50;
+
+    function saveState() {
+      try {
+        const snapshot = JSON.stringify({
+          components: components.map(c => ({
+            id: c.id,
+            type: c.type,
+            tag: c.tag,
+            x: c.x,
+            y: c.y,
+            w: c.w,
+            h: c.h,
+            terminals: c.terminals.map(t => ({ ...t })),
+            state: { ...c.state }
+          })),
+          wires: wires.map(w => ({ ...w }))
+        });
+
+        if (undoStack.length > 0 && undoStack[undoStack.length - 1] === snapshot) {
+          return;
+        }
+
+        undoStack.push(snapshot);
+        if (undoStack.length > MAX_HISTORY) undoStack.shift();
+        redoStack.length = 0;
+        updateUndoRedoUI();
+      } catch (err) {
+        console.error('Error saving undo state:', err);
+      }
+    }
+
+    function undo() {
+      if (undoStack.length === 0) {
+        document.getElementById('sb-status').textContent = 'Nothing to undo.';
+        return;
+      }
+      try {
+        const currentSnapshot = JSON.stringify({
+          components: components.map(c => ({
+            id: c.id,
+            type: c.type,
+            tag: c.tag,
+            x: c.x,
+            y: c.y,
+            w: c.w,
+            h: c.h,
+            terminals: c.terminals.map(t => ({ ...t })),
+            state: { ...c.state }
+          })),
+          wires: wires.map(w => ({ ...w }))
+        });
+        redoStack.push(currentSnapshot);
+
+        const prev = JSON.parse(undoStack.pop());
+        components = prev.components;
+        wires = prev.wires;
+        selectedComp = null;
+        selectedWire = null;
+        selectedTerminal = null;
+
+        updateUndoRedoUI();
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = `Undo: Restored previous state (${undoStack.length} undos available).`;
+        stepSolver();
+        render();
+      } catch (err) {
+        console.error('Error executing undo:', err);
+      }
+    }
+
+    function redo() {
+      if (redoStack.length === 0) {
+        document.getElementById('sb-status').textContent = 'Nothing to redo.';
+        return;
+      }
+      try {
+        const currentSnapshot = JSON.stringify({
+          components: components.map(c => ({
+            id: c.id,
+            type: c.type,
+            tag: c.tag,
+            x: c.x,
+            y: c.y,
+            w: c.w,
+            h: c.h,
+            terminals: c.terminals.map(t => ({ ...t })),
+            state: { ...c.state }
+          })),
+          wires: wires.map(w => ({ ...w }))
+        });
+        undoStack.push(currentSnapshot);
+
+        const next = JSON.parse(redoStack.pop());
+        components = next.components;
+        wires = next.wires;
+        selectedComp = null;
+        selectedWire = null;
+        selectedTerminal = null;
+
+        updateUndoRedoUI();
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = `Redo: Restored next state (${redoStack.length} redos available).`;
+        stepSolver();
+        render();
+      } catch (err) {
+        console.error('Error executing redo:', err);
+      }
+    }
+
+    function updateUndoRedoUI() {
+      const uBtn = document.getElementById('btn-undo');
+      const rBtn = document.getElementById('btn-redo');
+      if (uBtn) {
+        uBtn.disabled = (undoStack.length === 0);
+        uBtn.style.opacity = undoStack.length === 0 ? '0.5' : '1.0';
+        uBtn.style.cursor = undoStack.length === 0 ? 'not-allowed' : 'pointer';
+        uBtn.title = undoStack.length === 0 ? 'Undo (Ctrl+Z)' : `Undo (${undoStack.length} actions left) (Ctrl+Z)`;
+      }
+      if (rBtn) {
+        rBtn.disabled = (redoStack.length === 0);
+        rBtn.style.opacity = redoStack.length === 0 ? '0.5' : '1.0';
+        rBtn.style.cursor = redoStack.length === 0 ? 'not-allowed' : 'pointer';
+        rBtn.title = redoStack.length === 0 ? 'Redo (Ctrl+Y)' : `Redo (${redoStack.length} actions left) (Ctrl+Y)`;
+      }
+    }
+
+    function updateDeleteButtonUI() {
+      const delBtn = document.getElementById('btn-delete');
+      if (delBtn) {
+        if (selectedComp) {
+          delBtn.style.background = '#ffcdd2';
+          delBtn.style.color = '#b71c1c';
+          delBtn.style.fontWeight = 'bold';
+          delBtn.title = `Delete Selected Component: ${selectedComp.tag} (Del)`;
+        } else if (selectedWire) {
+          delBtn.style.background = '#ffcdd2';
+          delBtn.style.color = '#b71c1c';
+          delBtn.style.fontWeight = 'bold';
+          delBtn.title = 'Delete Selected Wire (Del)';
+        } else {
+          delBtn.style.background = '';
+          delBtn.style.color = '#b71c1c';
+          delBtn.style.fontWeight = 'normal';
+          delBtn.title = 'Delete Selected Component/Wire (Delete key)';
+        }
+      }
+    }
     function distToSegment(px, py, x1, y1, x2, y2) {
       const dx = x2 - x1;
       const dy = y2 - y1;
@@ -584,17 +751,6 @@
       }
       return pts;
     }
-
-    let hoveredWire = null;
-    let selectedWire = null;
-    let draggedComp = null;
-    let dragOffsetX = 0;
-    let dragOffsetY = 0;
-
-    let components = [];
-    let wires = [];
-    let simInterval = null;
-    let animTick = 0;
 
     function snap(v) { return Math.round(v / 10) * 10; }
 
@@ -832,14 +988,33 @@
     }
 
     function deleteSelected() {
+      if (isSimulating) {
+        document.getElementById('sb-status').textContent = 'Cannot delete components while simulation is RUNNING. Stop simulation (⏹ Stop) first.';
+        return;
+      }
       if (selectedComp) {
+        saveState();
         const compId = selectedComp.id;
+        const compTag = selectedComp.tag;
         const termIds = new Set(selectedComp.terminals.map(t => t.id));
         wires = wires.filter(w => !termIds.has(w.fromId) && !termIds.has(w.toId));
         components = components.filter(c => c.id !== compId);
         selectedComp = null;
-        document.getElementById('sb-status').textContent = 'Component and connected wires deleted.';
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = `Deleted component: ${compTag} and connected wires. Press Ctrl+Z to Undo.`;
+        stepSolver();
         render();
+      } else if (selectedWire) {
+        saveState();
+        wires = wires.filter(w => w !== selectedWire);
+        selectedWire = null;
+        hoveredWire = null;
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = 'Deleted selected wire. Press Ctrl+Z to Undo.';
+        stepSolver();
+        render();
+      } else {
+        document.getElementById('sb-status').textContent = 'Nothing selected to delete. Click a component or wire first, then press Delete or 🗑️.';
       }
     }
 
@@ -958,6 +1133,17 @@
         probeEl.style.display = 'none';
       }
 
+      // Check hover on floating [✕ DEL] badge of selected component
+      if (!isSimulating && selectedComp) {
+        const bx = selectedComp.x + selectedComp.w - 24;
+        const by = selectedComp.y - 24;
+        if (rawX >= bx && rawX <= bx + 26 && rawY >= by && rawY <= by + 18) {
+          canvas.style.cursor = 'pointer';
+          document.getElementById('sb-status').textContent = `Click [✕ DEL] to delete ${selectedComp.tag} (or press Delete key)`;
+          return;
+        }
+      }
+
       if (isDragging && draggedComp) {
         draggedComp.x = snap(rawX - dragOffsetX);
         draggedComp.y = snap(rawY - dragOffsetY);
@@ -991,7 +1177,17 @@
       const x = snap(rawX);
       const y = snap(rawY);
 
-      // Interactive Component Simulation Clicks (Priority 1 when simulation is active!)
+      // 1. Click on Floating [✕ DEL] badge of selected component
+      if (!isSimulating && selectedComp) {
+        const bx = selectedComp.x + selectedComp.w - 24;
+        const by = selectedComp.y - 24;
+        if (rawX >= bx && rawX <= bx + 26 && rawY >= by && rawY <= by + 18) {
+          deleteSelected();
+          return;
+        }
+      }
+
+      // 2. Interactive Component Simulation Clicks (Priority 1 when simulation is active!)
       if (isSimulating) {
         const comp = findComponentAt(rawX, rawY);
         if (comp && (comp.type === 'DISYUNTOR_3P' || comp.type.startsWith('PUL_'))) {
@@ -1028,51 +1224,40 @@
         }
       }
 
-      // Wire Click Selection Lock (Inspect / Highlight wire)
+      // 3. Wire Click Selection Lock (Inspect / Highlight wire)
       if (hoveredWire) {
         selectedWire = (selectedWire === hoveredWire) ? null : hoveredWire;
-        document.getElementById('sb-status').textContent = selectedWire ? 'Wire trace locked! Click again to unlock.' : 'Wire unlocked.';
+        selectedComp = null;
+        updateDeleteButtonUI();
+        document.getElementById('sb-status').textContent = selectedWire ? 'Wire trace selected. Press Delete or click 🗑️ to delete.' : 'Wire unselected.';
         render();
         return;
       }
 
-      // Component Placement
+      // 4. Component Placement
       if (selectedComponentType) {
+        saveState();
         addComponent(selectedComponentType.type, selectedComponentType.tag, x, y);
         selectedComponentType = null;
         document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('selected'));
-        document.getElementById('sb-status').textContent = 'Component placed. Ready.';
+        document.getElementById('sb-status').textContent = 'Component placed. Press Ctrl+Z to Undo.';
         render();
         return;
       }
 
-      // Pointer Selection & Dragging
-      if (toolMode === 'POINTER') {
-        const comp = findComponentAt(rawX, rawY);
-        if (comp) {
-          selectedComp = comp;
-          isDragging = true;
-          draggedComp = comp;
-          dragOffsetX = rawX - comp.x;
-          dragOffsetY = rawY - comp.y;
-          canvas.style.cursor = 'grabbing';
-          document.getElementById('sb-status').textContent = `Selected: ${comp.tag} (${comp.type}). Drag to move, Delete key to remove.`;
-        } else {
-          selectedComp = null;
-        }
-        render();
-        return;
-      }
-
-      // Wire Tool Connection
+      // 5. Wire Tool Connection (when clicking a terminal pin)
       if (toolMode === 'WIRE') {
         const found = findTerminalAt(rawX, rawY);
         if (found) {
           if (!selectedTerminal) {
             selectedTerminal = found;
+            selectedComp = null;
+            selectedWire = null;
+            updateDeleteButtonUI();
             document.getElementById('sb-status').textContent = `Connection started at pin ${found.term.name} (${found.comp.tag}). Click target pin.`;
           } else {
             if (selectedTerminal.term.id !== found.term.id) {
+              saveState();
               wires.push({
                 fromId: selectedTerminal.term.id,
                 toId: found.term.id,
@@ -1081,18 +1266,51 @@
                 isLive: false,
                 currentFlow: false
               });
-              document.getElementById('sb-status').textContent = `Connected pin ${selectedTerminal.term.name} to ${found.term.name}.`;
+              document.getElementById('sb-status').textContent = `Connected pin ${selectedTerminal.term.name} to ${found.term.name}. Press Ctrl+Z to Undo.`;
             }
             selectedTerminal = null;
             render();
           }
+          return;
         } else {
           if (selectedTerminal) {
             selectedTerminal = null;
             document.getElementById('sb-status').textContent = 'Wire placement cancelled.';
             render();
+            return;
           }
         }
+      }
+
+      // 6. Direct Component Selection & Dragging (Active in both POINTER and WIRE modes!)
+      const comp = findComponentAt(rawX, rawY);
+      if (comp) {
+        selectedComp = comp;
+        selectedWire = null;
+        updateDeleteButtonUI();
+        isDragging = true;
+        draggedComp = comp;
+        dragOffsetX = rawX - comp.x;
+        dragOffsetY = rawY - comp.y;
+        dragStartX = comp.x;
+        dragStartY = comp.y;
+        dragStartSnapshot = JSON.stringify({
+          components: components.map(c => ({
+            id: c.id, type: c.type, tag: c.tag, x: c.x, y: c.y, w: c.w, h: c.h,
+            terminals: c.terminals.map(t => ({ ...t })),
+            state: { ...c.state }
+          })),
+          wires: wires.map(w => ({ ...w }))
+        });
+        canvas.style.cursor = 'grabbing';
+        document.getElementById('sb-status').textContent = `Selected: ${comp.tag} (${comp.type}). Drag to reposition, or press Delete / click ✕ to delete.`;
+        render();
+        return;
+      } else {
+        selectedComp = null;
+        selectedWire = null;
+        updateDeleteButtonUI();
+        render();
       }
     });
 
@@ -1125,25 +1343,95 @@
 
     window.addEventListener('mouseup', () => {
       if (isDragging) {
+        if (draggedComp && dragStartSnapshot) {
+          if (draggedComp.x !== dragStartX || draggedComp.y !== dragStartY) {
+            if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== dragStartSnapshot) {
+              undoStack.push(dragStartSnapshot);
+              if (undoStack.length > MAX_HISTORY) undoStack.shift();
+              redoStack.length = 0;
+              updateUndoRedoUI();
+              document.getElementById('sb-status').textContent = `Moved ${draggedComp.tag}. Press Ctrl+Z to Undo.`;
+            }
+          }
+        }
         isDragging = false;
         draggedComp = null;
-        canvas.style.cursor = 'grab';
+        dragStartSnapshot = null;
+        canvas.style.cursor = toolMode === 'POINTER' ? 'grab' : 'crosshair';
         render();
       }
     });
 
     window.addEventListener('keydown', (e) => {
+      // Undo: Ctrl+Z / Cmd+Z (without Shift)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      // Redo: Ctrl+Y / Cmd+Y or Ctrl+Shift+Z / Cmd+Shift+Z
+      if (((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
+          ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'))) {
+        e.preventDefault();
+        redo();
+        return;
+      }
       if (e.key === 'Escape') {
         selectedTerminal = null;
         selectedComponentType = null;
         selectedWire = null;
+        selectedComp = null;
+        updateDeleteButtonUI();
         document.getElementById('probe-tooltip').style.display = 'none';
         document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('selected'));
-        document.getElementById('sb-status').textContent = 'Operation cancelled. Wire selection cleared.';
+        document.getElementById('sb-status').textContent = 'Operation cancelled. Selection cleared.';
         render();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (!isSimulating && selectedComp) deleteSelected();
+        if (!isSimulating && (selectedComp || selectedWire)) {
+          e.preventDefault();
+          deleteSelected();
+        }
       }
+    });
+
+    // Right-Click Context Actions (Quick Delete or Cancel)
+    canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (isSimulating) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const rawX = (e.clientX - rect.left) * scaleX;
+      const rawY = (e.clientY - rect.top) * scaleY;
+
+      if (selectedTerminal || selectedComponentType) {
+        selectedTerminal = null;
+        selectedComponentType = null;
+        document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('sb-status').textContent = 'Action cancelled.';
+        render();
+        return;
+      }
+
+      const comp = findComponentAt(rawX, rawY);
+      if (comp) {
+        selectedComp = comp;
+        selectedWire = null;
+        deleteSelected();
+        return;
+      }
+
+      if (hoveredWire) {
+        selectedWire = hoveredWire;
+        selectedComp = null;
+        deleteSelected();
+        return;
+      }
+
+      selectedComp = null;
+      selectedWire = null;
+      updateDeleteButtonUI();
+      render();
     });
 
     // TRUE GRAPH-BASED BFS ELECTRICAL POTENTIAL & POWER FLOW SOLVER
@@ -1693,14 +1981,6 @@
         ctx.save();
         ctx.translate(c.x, c.y);
 
-        if (selectedComp && selectedComp.id === c.id) {
-          ctx.strokeStyle = '#0066ff';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.strokeRect(-4, -4, c.w + 8, c.h + 8);
-          ctx.setLineDash([]);
-        }
-
         if (visualMode === '2D') {
           draw2DComponent(c);
         } else {
@@ -1743,6 +2023,42 @@
           ctx.fillStyle = isHot ? '#d50000' : '#0d47a1';
           ctx.fillText(txt, badgeX + 2, badgeY + 8);
           ctx.restore();
+        }
+
+        // Selection Bounding Box, Corner Grips, and Floating Delete Badge
+        if (selectedComp && selectedComp.id === c.id) {
+          ctx.strokeStyle = '#0066ff';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(-5, -5, c.w + 10, c.h + 10);
+          ctx.setLineDash([]);
+
+          // 4 Corner grips
+          ctx.fillStyle = '#0066ff';
+          ctx.fillRect(-7, -7, 6, 6);
+          ctx.fillRect(c.w + 1, -7, 6, 6);
+          ctx.fillRect(-7, c.h + 1, 6, 6);
+          ctx.fillRect(c.w + 1, c.h + 1, 6, 6);
+
+          // Floating Red Delete Badge [✕ DEL]
+          const bx = c.w - 24;
+          const by = -24;
+          ctx.fillStyle = '#d32f2f';
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(bx, by, 26, 18, 3);
+          else ctx.rect(bx, by, 26, 18);
+          ctx.fill();
+          ctx.strokeStyle = '#b71c1c';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('✕', bx + 7, by + 13);
+          ctx.font = 'bold 8px sans-serif';
+          ctx.fillText('DEL', bx + 18, by + 12);
+          ctx.textAlign = 'start';
         }
 
         ctx.restore();
@@ -2182,8 +2498,15 @@
 
     // DIRECT-ON-LINE (DOL) STARTER PRESET (WIRED DIRECTLY TO REAL CONTACTOR TERMINALS!)
     function loadDOLStarter() {
+      if (components.length > 0 || wires.length > 0) {
+        saveState();
+      }
       components = [];
       wires = [];
+      selectedComp = null;
+      selectedWire = null;
+      selectedTerminal = null;
+      updateDeleteButtonUI();
       document.getElementById('tb-circuit-title').textContent = 'Title: DOL Starter Circuit';
 
       // Power Section
@@ -2239,8 +2562,15 @@
 
     // FULL STAR-DELTA (Y-Δ) PRESET (MAXIMUM BREATHING SPACE: 1400x900 Sheet, 80-140px component gaps!)
     function loadStarDeltaStarter() {
+      if (components.length > 0 || wires.length > 0) {
+        saveState();
+      }
       components = [];
       wires = [];
+      selectedComp = null;
+      selectedWire = null;
+      selectedTerminal = null;
+      updateDeleteButtonUI();
       document.getElementById('tb-circuit-title').textContent = 'Title: Star-Delta (Y-Δ) 6-Terminal Starter (Spacious View)';
 
       // 1. Power Supply & MCB
@@ -2339,11 +2669,16 @@
     }
 
     function clearSheet() {
+      if (components.length > 0 || wires.length > 0) {
+        saveState();
+      }
       components = [];
       wires = [];
       selectedTerminal = null;
       selectedComp = null;
-      document.getElementById('sb-status').textContent = 'Sheet cleared.';
+      selectedWire = null;
+      updateDeleteButtonUI();
+      document.getElementById('sb-status').textContent = 'Sheet cleared. Press Ctrl+Z to Undo.';
       render();
     }
 
